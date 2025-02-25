@@ -123,6 +123,7 @@ function useMediaRecorderHelper(
         recorder.stop();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stream, isRecording]);
 }
 
