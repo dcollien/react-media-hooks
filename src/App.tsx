@@ -1,14 +1,13 @@
 import { useState } from "react";
 import "./App.css";
 
-import { useAudioDeviceIdConstraints } from "./hooks/audio";
 import {
   useMediaRecorder,
   useMediaStreamDeviceInfo,
   useElapsedTime,
   useMediaStream,
 } from "./hooks/media";
-import { dowloadBlobs, useBlobUrls } from "./hooks/blob";
+import { useBlobUrls } from "./hooks/blob";
 
 import { DeviceSelector } from "./components/DeviceSelector";
 import { AudioRecorder } from "./components/AudioRecorder";
@@ -18,13 +17,11 @@ function DeviceSelectionStep({
   videoDeviceId,
   onAudioDeviceIdChange,
   onVideoDeviceIdChange,
-  next,
 }: {
   audioDeviceId: string | null;
   videoDeviceId: string | null;
   onAudioDeviceIdChange: (deviceId: string | null) => void;
   onVideoDeviceIdChange: (deviceId: string | null) => void;
-  next: () => void;
 }) {
   const constraints = {
     audio: true,
@@ -45,17 +42,14 @@ function DeviceSelectionStep({
         devices={videoDevices}
         onChange={onVideoDeviceIdChange}
       />
-      <button onClick={() => next()}>Next</button>
     </div>
   );
 }
 
 function AudioRecorderStep({
   audioDeviceId,
-  next,
 }: {
   audioDeviceId: string | null;
-  next: () => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
 
@@ -86,7 +80,6 @@ function AudioRecorderStep({
           <audio controls src={url}></audio>
         </div>
       ))}
-      <button onClick={() => next()}>Next</button>
     </div>
   );
 }
@@ -105,8 +98,8 @@ function App() {
           videoDeviceId={videoDeviceId}
           onAudioDeviceIdChange={(id) => setAudioDeviceId(id)}
           onVideoDeviceIdChange={(id) => setVideoDeviceId(id)}
-          next={() => setStep(1)}
         />
+        <button onClick={() => setStep(1)}>Next</button>
       </div>
     );
   } else if (step == 1) {
@@ -114,16 +107,16 @@ function App() {
       <div>
         <h1>Step 2: Take a breath</h1>
         <button onClick={() => setStep(2)}>Next</button>
+        <button onClick={() => setStep(0)}>Back</button>
       </div>
     );
   } else if (step === 2) {
     return (
       <div>
         <h1>Step 3: Record your audio</h1>
-        <AudioRecorderStep
-          audioDeviceId={audioDeviceId}
-          next={() => setStep(3)}
-        />
+        <AudioRecorderStep audioDeviceId={audioDeviceId} />
+        <button onClick={() => setStep(3)}>Next</button>
+        <button onClick={() => setStep(1)}>Back</button>
       </div>
     );
   } else if (step === 3) {

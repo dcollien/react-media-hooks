@@ -216,21 +216,63 @@ const stopStream = (streamRef: React.RefObject<MediaStream | null>) => {
   streamRef.current = null;
 };
 
+const hashDeviceId = (deviceId: ConstrainDOMString | null) => {
+  if (!deviceId) {
+    return null;
+  } else if (typeof deviceId === "string") {
+    return deviceId;
+  } else {
+    return JSON.stringify(deviceId);
+  }
+};
+
+const hashDeviceIds = (constraints: MediaStreamConstraints | null) => {
+  let audioDeviceHash: string | null = null;
+  let videoDeviceHash: string | null = null;
+
+  if (!constraints) {
+    return {
+      audioIdHash: audioDeviceHash,
+      videoIdHash: videoDeviceHash,
+    } as const;
+  }
+
+  const audioConstraints: boolean | MediaTrackConstraints | null =
+    constraints.audio || null;
+  const videoConstraints: boolean | MediaTrackConstraints | null =
+    constraints.video || null;
+
+  if (audioConstraints) {
+    const deviceId =
+      typeof audioConstraints === "boolean"
+        ? null
+        : audioConstraints.deviceId || null;
+
+    audioDeviceHash = hashDeviceId(deviceId);
+  }
+
+  if (videoConstraints) {
+    const deviceId =
+      typeof videoConstraints === "boolean"
+        ? null
+        : videoConstraints.deviceId || null;
+
+    videoDeviceHash = hashDeviceId(deviceId);
+  }
+
+  return {
+    audioIdHash: audioDeviceHash,
+    videoIdHash: videoDeviceHash,
+  } as const;
+};
+
 export function useMediaStream(constraints: MediaStreamConstraints | null) {
   // A stream that combines tracks from the selected audio and video devices
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Update the stream when the constraints change
-  const audioConstraints = constraints ? constraints.audio || null : null;
-  const videoConstraints = constraints ? constraints.video || null : null;
-  const audioDeviceId =
-    typeof audioConstraints === "boolean"
-      ? null
-      : audioConstraints?.deviceId || null;
-  const videoDeviceId =
-    typeof videoConstraints === "boolean"
-      ? null
-      : videoConstraints?.deviceId || null;
+  const { audioIdHash, videoIdHash } = hashDeviceIds(constraints);
+
+  console.log("useMediaStream", audioIdHash, videoIdHash);
 
   useEffect(() => {
     console.log("updating stream");
@@ -240,7 +282,8 @@ export function useMediaStream(constraints: MediaStreamConstraints | null) {
       console.log("stopping stream on cleanup");
       stopStream(streamRef);
     };
-  }, [audioDeviceId, videoDeviceId, constraints]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioIdHash, videoIdHash]);
 
   return streamRef.current;
 }
