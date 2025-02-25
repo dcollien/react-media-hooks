@@ -198,13 +198,13 @@ export function useMediaInputDevices(isPermissionRequested: boolean) {
 export function useMediaStream(constraints: MediaStreamConstraints) {
   // A stream that combines tracks from the selected audio and video devices
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isPermissionRequested, setIsPermissionRequested] = useState(false);
+  const [isPermissionGranted, setIsPermissionGranted] = useState(false);
 
   const updateStream = async () => {
     try {
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setIsPermissionRequested(true);
       setStream(newStream);
+      setIsPermissionGranted(true);
     } catch (error) {
       console.error("Error getting device", error);
     }
@@ -234,19 +234,18 @@ export function useMediaStream(constraints: MediaStreamConstraints) {
     videoDeviceId,
   ]);
 
-  return [stream, isPermissionRequested] as const;
+  return [stream, isPermissionGranted] as const;
 }
 
 export function useMediaInputStream(constraints: MediaStreamConstraints) {
   // A stream that combines tracks from the selected audio and video devices
-  const [stream, isPermissionRequested] = useMediaStream(constraints);
+  const [stream, isPermissionGranted] = useMediaStream(constraints);
 
   // A list of all available media devices, separated by kind
   // This will also set the stream if it hasn't been initialized yet
   // As it needs to request permission to use the devices
-  const [audioDevices, videoDevices] = useMediaInputDevices(
-    isPermissionRequested
-  );
+  const [audioDevices, videoDevices] =
+    useMediaInputDevices(isPermissionGranted);
 
   return {
     stream,
