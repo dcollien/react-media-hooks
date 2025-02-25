@@ -3,9 +3,9 @@ import "./App.css";
 
 import {
   useMediaRecorder,
-  useMediaStreamDeviceInfo,
   useElapsedTime,
   useMediaStream,
+  useMediaInputDeviceInfo,
 } from "./hooks/media";
 import { useBlobUrls } from "./hooks/blob";
 
@@ -23,12 +23,7 @@ function DeviceSelectionStep({
   onAudioDeviceIdChange: (deviceId: string | null) => void;
   onVideoDeviceIdChange: (deviceId: string | null) => void;
 }) {
-  const constraints = {
-    audio: true,
-    video: true,
-  };
-
-  const { audioDevices, videoDevices } = useMediaStreamDeviceInfo(constraints);
+  const { audioDevices, videoDevices } = useMediaInputDeviceInfo();
 
   return (
     <div>

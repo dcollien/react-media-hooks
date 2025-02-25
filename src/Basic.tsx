@@ -4,7 +4,7 @@ import "./App.css";
 import { useAudioDeviceIdConstraints } from "./hooks/audio";
 import {
   useMediaRecorder,
-  useMediaStreamDeviceInfo,
+  useMediaInputStreamDeviceInfo,
   useElapsedTime,
 } from "./hooks/media";
 import { dowloadBlobs, useBlobUrls } from "./hooks/blob";
@@ -17,7 +17,7 @@ function App() {
 
   // Get the audio stream
   const constraints = useAudioDeviceIdConstraints(deviceId);
-  const { stream, audioDevices } = useMediaStreamDeviceInfo(constraints);
+  const { stream, audioDevices } = useMediaInputStreamDeviceInfo(constraints);
 
   // Recorder
   const [isRecording, setIsRecording] = useState(false);

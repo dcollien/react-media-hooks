@@ -191,30 +191,65 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
   return [audioDevices, videoDevices] as const;
 }
 
-const updateStream = async (
-  streamRef: React.RefObject<MediaStream | null>,
-  constraints: MediaStreamConstraints | null
-) => {
-  try {
-    const newStream = constraints
-      ? await navigator.mediaDevices.getUserMedia(constraints)
-      : null;
-
-    streamRef.current = newStream;
-  } catch (error) {
-    console.error("Error getting user media from device", error);
-  }
-};
-
-const stopStream = (streamRef: React.RefObject<MediaStream | null>) => {
-  const stream = streamRef.current;
+const stopStream = (stream: MediaStream | null) => {
   if (stream) {
     stream.getTracks().forEach((track) => {
       track.stop();
     });
   }
+};
 
-  streamRef.current = null;
+const startStream = async (
+  streamsRef: React.RefObject<Record<string, MediaStream | "pending">>,
+  timestamp: number,
+  constraints: MediaStreamConstraints | null
+) => {
+  streamsRef.current[timestamp] = "pending";
+
+  try {
+    const newStream = constraints
+      ? await navigator.mediaDevices.getUserMedia(constraints)
+      : null;
+
+    if (streamsRef.current[timestamp] === "pending") {
+      if (newStream) {
+        streamsRef.current[timestamp] = newStream;
+      } else {
+        delete streamsRef.current[timestamp];
+      }
+    } else {
+      stopStream(newStream);
+    }
+
+    return newStream;
+  } catch (error) {
+    console.error("Error getting user media from device", error);
+  }
+
+  return null;
+};
+
+const stopOldStreams = (
+  streamsRef: React.RefObject<Record<string, MediaStream | "pending">>,
+  timestamp: number
+) => {
+  const oldStreamTimestamps = Object.keys(streamsRef.current);
+
+  // stop all old streams
+  oldStreamTimestamps.forEach((timestampKey) => {
+    const streamTimestamp = parseInt(timestampKey, 10);
+
+    // older than the current timestamp
+    if (streamTimestamp < timestamp) {
+      const stream = streamsRef.current[streamTimestamp];
+
+      if (stream !== "pending") {
+        stopStream(stream);
+      }
+
+      delete streamsRef.current[streamTimestamp];
+    }
+  });
 };
 
 const hashDeviceId = (deviceId: ConstrainDOMString | null) => {
@@ -231,34 +266,29 @@ const hashDeviceIds = (constraints: MediaStreamConstraints | null) => {
   let audioDeviceHash: string | null = null;
   let videoDeviceHash: string | null = null;
 
-  if (!constraints) {
-    return {
-      audioIdHash: audioDeviceHash,
-      videoIdHash: videoDeviceHash,
-    } as const;
-  }
+  if (constraints) {
+    const audioConstraints: boolean | MediaTrackConstraints | null =
+      constraints.audio || null;
+    const videoConstraints: boolean | MediaTrackConstraints | null =
+      constraints.video || null;
 
-  const audioConstraints: boolean | MediaTrackConstraints | null =
-    constraints.audio || null;
-  const videoConstraints: boolean | MediaTrackConstraints | null =
-    constraints.video || null;
+    if (audioConstraints) {
+      const deviceId =
+        typeof audioConstraints === "boolean"
+          ? audioConstraints.toString()
+          : audioConstraints.deviceId || null;
 
-  if (audioConstraints) {
-    const deviceId =
-      typeof audioConstraints === "boolean"
-        ? null
-        : audioConstraints.deviceId || null;
+      audioDeviceHash = hashDeviceId(deviceId);
+    }
 
-    audioDeviceHash = hashDeviceId(deviceId);
-  }
+    if (videoConstraints) {
+      const deviceId =
+        typeof videoConstraints === "boolean"
+          ? videoConstraints.toString()
+          : videoConstraints.deviceId || null;
 
-  if (videoConstraints) {
-    const deviceId =
-      typeof videoConstraints === "boolean"
-        ? null
-        : videoConstraints.deviceId || null;
-
-    videoDeviceHash = hashDeviceId(deviceId);
+      videoDeviceHash = hashDeviceId(deviceId);
+    }
   }
 
   return {
@@ -267,29 +297,52 @@ const hashDeviceIds = (constraints: MediaStreamConstraints | null) => {
   } as const;
 };
 
-export function useMediaStream(constraints: MediaStreamConstraints | null) {
-  // A stream that combines tracks from the selected audio and video devices
-  const streamRef = useRef<MediaStream | null>(null);
+export function useMediaStream(
+  constraints: MediaStreamConstraints | null
+): MediaStream | null {
+  // A history of pending and open streams, so we can ensure we stop old streams
+  const streamsRef = useRef<Record<string, MediaStream | "pending">>({});
+
+  // The most recent stream timestamp, so we don't overwrite the current stream
+  // with an older initiation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_mostRecentStreamTimestamp, setMostRecentTimestamp] = useState<
+    number | null
+  >(null);
+
+  // The current stream, which is the most recently initiated stream
+  const [currentStream, setCurrentStream] = useState<MediaStream | null>(null);
 
   const { audioIdHash, videoIdHash } = hashDeviceIds(constraints);
 
-  console.log("useMediaStream", audioIdHash, videoIdHash);
-
   useEffect(() => {
-    console.log("updating stream");
-    updateStream(streamRef, constraints);
+    const timestamp = Date.now();
+    stopOldStreams(streamsRef, timestamp);
+    setMostRecentTimestamp(timestamp);
+
+    // Streams are started asynchronously
+    // We need to check the timestamp to check to see if the stream is still the most recent
+    startStream(streamsRef, timestamp, constraints).then((stream) => {
+      setMostRecentTimestamp((mostRecentTimestamp) => {
+        if (mostRecentTimestamp === timestamp) {
+          setCurrentStream(stream);
+        }
+
+        return mostRecentTimestamp;
+      });
+    });
 
     return () => {
-      console.log("stopping stream on cleanup");
-      stopStream(streamRef);
+      stopOldStreams(streamsRef, timestamp);
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioIdHash, videoIdHash]);
 
-  return streamRef.current;
+  return currentStream;
 }
 
-export function useMediaStreamDeviceInfo(
+export function useMediaInputStreamDeviceInfo(
   constraints: MediaStreamConstraints | null
 ) {
   // A stream that combines tracks from the selected audio and video devices
@@ -309,4 +362,35 @@ export function useMediaStreamDeviceInfo(
     audioDevices,
     videoDevices,
   };
+}
+
+export function useMediaInputDeviceInfo(
+  requestConstraints = {
+    audio: true,
+    video: true,
+  }
+) {
+  // initialize the state with an empty array
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+
+  // Initialize the constraints with the requested constraints
+  const [constraints, setConstraints] = useState<MediaStreamConstraints | null>(
+    requestConstraints
+  );
+
+  // Get the devices, or stop the stream once we have them
+  const { audioDevices: _audioList, videoDevices: _videoList } =
+    useMediaInputStreamDeviceInfo(constraints);
+
+  // Stop access to the streams once we have saved the devices
+  useEffect(() => {
+    if (_audioList.length || _videoList.length) {
+      setAudioDevices(_audioList);
+      setVideoDevices(_videoList);
+      setConstraints(null);
+    }
+  }, [_audioList, _videoList, _audioList.length, _videoList.length]);
+
+  return { audioDevices, videoDevices };
 }
