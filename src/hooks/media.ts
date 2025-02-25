@@ -163,7 +163,7 @@ export function useMediaRecorder(
   return result;
 }
 
-export function useMediaInputDevices(isPermissionRequested: boolean) {
+export function useMediaInputDevices(isPermissionGranted: boolean) {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
@@ -190,23 +190,33 @@ export function useMediaInputDevices(isPermissionRequested: boolean) {
   // Re-initialize the devices when permission is requested
   useEffect(() => {
     init();
-  }, [isPermissionRequested]);
+  }, [isPermissionGranted]);
 
   return [audioDevices, videoDevices] as const;
 }
 
-export function useMediaStream(constraints: MediaStreamConstraints) {
+export function useMediaStream(constraints: MediaStreamConstraints | null) {
   // A stream that combines tracks from the selected audio and video devices
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isPermissionGranted, setIsPermissionGranted] = useState(false);
 
   const updateStream = async () => {
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(newStream);
-      setIsPermissionGranted(true);
+      const newStream = constraints
+        ? await navigator.mediaDevices.getUserMedia(constraints)
+        : null;
+      setStream((oldStream) => {
+        // Stop the old stream
+
+        if (oldStream) {
+          oldStream.getTracks().forEach((track) => {
+            track.stop();
+          });
+        }
+
+        return newStream;
+      });
     } catch (error) {
-      console.error("Error getting device", error);
+      console.error("Error getting user media from device", error);
     }
   };
 
@@ -217,12 +227,16 @@ export function useMediaStream(constraints: MediaStreamConstraints) {
   }, []);
 
   // Update the stream when the constraints change
-  const audioConstraints = constraints.audio;
-  const videoConstraints = constraints.video;
+  const audioConstraints = constraints ? constraints.audio || null : null;
+  const videoConstraints = constraints ? constraints.video || null : null;
   const audioDeviceId =
-    typeof audioConstraints === "boolean" ? null : audioConstraints?.deviceId;
+    typeof audioConstraints === "boolean"
+      ? null
+      : audioConstraints?.deviceId || null;
   const videoDeviceId =
-    typeof videoConstraints === "boolean" ? null : videoConstraints?.deviceId;
+    typeof videoConstraints === "boolean"
+      ? null
+      : videoConstraints?.deviceId || null;
 
   useEffect(() => {
     updateStream();
@@ -234,12 +248,17 @@ export function useMediaStream(constraints: MediaStreamConstraints) {
     videoDeviceId,
   ]);
 
-  return [stream, isPermissionGranted] as const;
+  return stream;
 }
 
-export function useMediaInputStream(constraints: MediaStreamConstraints) {
+export function useMediaInputStream(
+  constraints: MediaStreamConstraints | null
+) {
   // A stream that combines tracks from the selected audio and video devices
-  const [stream, isPermissionGranted] = useMediaStream(constraints);
+  // This also requests permission to use the devices
+  const stream = useMediaStream(constraints);
+
+  const isPermissionGranted = stream !== null;
 
   // A list of all available media devices, separated by kind
   // This will also set the stream if it hasn't been initialized yet

@@ -1,1 +1,157 @@
 # Example Audio Recorder and Media Hooks with React / MediaDevices / WebAudio APIs
+
+## Hooks
+
+### Audio
+
+Hooks for dealing with WebAudio
+
+#### useAudioContext
+
+```
+useAudioContext(): AudioContext | null
+```
+
+A global audio context is used. As per MDN:
+
+> It's recommended to create one AudioContext and reuse it instead of initializing a new one each time, and it's OK to use a single AudioContext for several different audio sources and pipeline concurrently.
+
+Browser vendors decided that Web Audio contexts should not be allowed to automatically play audio; they should instead be started by a user. As such, the `useAudioContext` hook waits for any user interaction before initializing the `AudioContext` so that the context does not get created in suspended mode.
+
+The context is stored as component state so component renders will be triggered when the context initializes and changes from `null` to the initialized `AudioContext` object.
+
+#### useAudioSource
+
+```
+useAudioSource(
+    audioContext: AudioContext | null,
+    stream: MediaStream | null
+): MediaStreamAudioSourceNode`
+```
+
+Given an AudioContext and a MediaStream, creates a MediaStreamSourceNode using `audioContext.createMediaStreamSource(stream)` when both `audioContext` and `stream` become initialized.
+
+The returned source node is stored as component state so component renders will be triggered when the audio source node becomes available.
+
+#### useAnalyser
+
+```
+useAnalyser(
+  audioContext: AudioContext | null,
+  source: MediaStreamAudioSourceNode | null,
+  fftSize = 256
+): AnalyserNode | null
+```
+
+Given an AudioContext and MediaStreamAudioSourceNode, returns an AnalyserNode. When the `source` changes, the old source will disconnect the analyser (if it exists), and the new source will be connected to the analyser.
+
+#### useAudioLevel
+
+```
+useAudioLevel(
+  audioContext: AudioContext | null,
+  source: MediaStreamAudioSourceNode | null,
+  updateInterval: number | null = 1000 / 60
+): {
+    level: number,
+    timestamp: number
+}
+```
+
+Given an AudioContext and MediaStreamAudioSourceNode, returns the current volume level and the timestamp that the volume was last sampled (uses `Date.now()`).
+
+The `updateInterval` controls how frequently the volume level is sampled, and can be set to `null` to pause updates.
+
+#### useAudioDeviceIdConstraints
+
+```
+useAudioDeviceIdConstraints(
+  deviceId: string | null
+): MediaStreamConstraints
+```
+
+Given a device ID, returns a memoized object representing the MediaStreamConstraints for this device (exact match). This object's reference changes when `deviceId` changes.
+
+If the `deviceId` is `null` then the constraints will be set to use the default audio device.
+
+### Media
+
+Hooks for dealing with MediaDevices
+
+#### useMediaInputStream
+
+```
+useMediaInputStream(
+    constraints: MediaStreamConstraints | null
+): {
+    stream: MediaStream | null,
+    audioDevices: MediaDeviceInfo[],
+    videoDevices: MediaDeviceInfo[]
+}
+```
+
+Given MediaStreamConstraints, returns a MediaStream and two lists of device info for audio and video respectively. When the constraints change (either the object reference, the value of its `audio` or `video` properties, or their respective `deviceId` properties), then the stream will be replaced with a new MediaStream for that set of constraints.
+
+`useMediaInputStream` will request permission to use the available devices and update the stream and device lists when permission is granted.
+
+The stream and device lists are component state (to trigger renders).
+
+Setting `constraints` to `null` will stop the stream.
+
+#### useMediaStream
+
+```
+useMediaStream(
+    constraints: MediaStreamConstraints | null
+): MediaStream
+```
+
+`useMediaStream` can be used to initialize the media stream (or request permissions) for a set of constraints, separately.
+
+Setting `constraints` to `null` will stop the stream.
+
+#### useMediaInputDevices
+
+```
+useMediaInputDevices(
+    isPermissionGranted: boolean
+): readonly [MediaDeviceInfo[], MediaDeviceInfo[]]
+```
+
+Given a flag for if permission has been granted, returns two lists of media devices: audio and video.
+
+Changing the `isPermissionGranted` flag will re-initialize the lists.
+
+#### useMediaRecorder
+
+```
+useMediaRecorder(
+  stream: MediaStream | null,
+  isRecording: boolean,
+  options?: MediaRecorderOptions
+): {
+  startTime: number | null;
+  blobs: Blob[];
+}
+```
+
+Start recording on a stream. Toggle `isRecording` to start/stop recording. Starting a new recording will re-initialize the `blobs` array. Stopping recording will populate the `blobs` array with new data.
+
+If a stream changes during recording, a new audio file Blob will be added to the `blobs` output array.
+
+The `startTime` is the ms since the `timeOrigin`, i.e. compare against `performance.now()`.
+
+```
+useElapsedTime(
+    result: RecordedMediaResult,
+    isRecording: boolean,
+    updateInterval?: number | null
+): {
+    elapsed: number;
+    minutes: number;
+    seconds: number;
+    millis: number;
+}
+```
+
+Can be used as a shortcut to retrieve the elapsed time since a result was created, updating every `updateInterval`.
