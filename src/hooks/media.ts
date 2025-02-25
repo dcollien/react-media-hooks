@@ -197,24 +197,32 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
 
 export function useMediaStream(constraints: MediaStreamConstraints | null) {
   // A stream that combines tracks from the selected audio and video devices
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopStream = () => {
+    const stream = streamRef.current;
+    if (stream) {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+
+    streamRef.current = null;
+  };
 
   const updateStream = async () => {
+    const stream = streamRef.current;
+
     try {
+      if (stream) {
+        stopStream();
+      }
+
       const newStream = constraints
         ? await navigator.mediaDevices.getUserMedia(constraints)
         : null;
-      setStream((oldStream) => {
-        // Stop the old stream
 
-        if (oldStream) {
-          oldStream.getTracks().forEach((track) => {
-            track.stop();
-          });
-        }
-
-        return newStream;
-      });
+      streamRef.current = newStream;
     } catch (error) {
       console.error("Error getting user media from device", error);
     }
@@ -223,7 +231,13 @@ export function useMediaStream(constraints: MediaStreamConstraints | null) {
   // Initialize the stream on first render
   // to request permission to use the devices
   useEffect(() => {
+    console.log("mounting stream");
     updateStream();
+
+    return () => {
+      console.log("stopping stream on unmount");
+      stopStream();
+    };
   }, []);
 
   // Update the stream when the constraints change
@@ -239,19 +253,14 @@ export function useMediaStream(constraints: MediaStreamConstraints | null) {
       : videoConstraints?.deviceId || null;
 
   useEffect(() => {
+    console.log("updating stream");
     updateStream();
-  }, [
-    constraints,
-    audioConstraints,
-    videoConstraints,
-    audioDeviceId,
-    videoDeviceId,
-  ]);
+  }, [audioDeviceId, videoDeviceId]);
 
-  return stream;
+  return streamRef.current;
 }
 
-export function useMediaInputStream(
+export function useMediaStreamDeviceInfo(
   constraints: MediaStreamConstraints | null
 ) {
   // A stream that combines tracks from the selected audio and video devices

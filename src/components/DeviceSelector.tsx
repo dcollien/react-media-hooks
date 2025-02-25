@@ -17,6 +17,7 @@ export function DeviceSelector({
           value={deviceId || ""}
           onChange={(e) => onChange(e.target.value || null)}
         >
+          <option value="">Default</option>
           {devices.map((device) => (
             <option key={device.deviceId} value={device.deviceId}>
               {device.label}
