@@ -182,11 +182,6 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
     }
   };
 
-  // Try to initialize the devices on first render
-  useEffect(() => {
-    init();
-  }, []);
-
   // Re-initialize the devices when permission is requested
   useEffect(() => {
     init();
@@ -195,50 +190,35 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
   return [audioDevices, videoDevices] as const;
 }
 
+const updateStream = async (
+  streamRef: React.RefObject<MediaStream | null>,
+  constraints: MediaStreamConstraints | null
+) => {
+  try {
+    const newStream = constraints
+      ? await navigator.mediaDevices.getUserMedia(constraints)
+      : null;
+
+    streamRef.current = newStream;
+  } catch (error) {
+    console.error("Error getting user media from device", error);
+  }
+};
+
+const stopStream = (streamRef: React.RefObject<MediaStream | null>) => {
+  const stream = streamRef.current;
+  if (stream) {
+    stream.getTracks().forEach((track) => {
+      track.stop();
+    });
+  }
+
+  streamRef.current = null;
+};
+
 export function useMediaStream(constraints: MediaStreamConstraints | null) {
   // A stream that combines tracks from the selected audio and video devices
   const streamRef = useRef<MediaStream | null>(null);
-
-  const stopStream = () => {
-    const stream = streamRef.current;
-    if (stream) {
-      stream.getTracks().forEach((track) => {
-        track.stop();
-      });
-    }
-
-    streamRef.current = null;
-  };
-
-  const updateStream = async () => {
-    const stream = streamRef.current;
-
-    try {
-      if (stream) {
-        stopStream();
-      }
-
-      const newStream = constraints
-        ? await navigator.mediaDevices.getUserMedia(constraints)
-        : null;
-
-      streamRef.current = newStream;
-    } catch (error) {
-      console.error("Error getting user media from device", error);
-    }
-  };
-
-  // Initialize the stream on first render
-  // to request permission to use the devices
-  useEffect(() => {
-    console.log("mounting stream");
-    updateStream();
-
-    return () => {
-      console.log("stopping stream on unmount");
-      stopStream();
-    };
-  }, []);
 
   // Update the stream when the constraints change
   const audioConstraints = constraints ? constraints.audio || null : null;
@@ -254,8 +234,13 @@ export function useMediaStream(constraints: MediaStreamConstraints | null) {
 
   useEffect(() => {
     console.log("updating stream");
-    updateStream();
-  }, [audioDeviceId, videoDeviceId]);
+    updateStream(streamRef, constraints);
+
+    return () => {
+      console.log("stopping stream on cleanup");
+      stopStream(streamRef);
+    };
+  }, [audioDeviceId, videoDeviceId, constraints]);
 
   return streamRef.current;
 }
