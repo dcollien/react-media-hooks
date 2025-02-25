@@ -64,7 +64,7 @@ function useMediaRecorderHelper(
   setResult: React.Dispatch<React.SetStateAction<RecordedMediaResult>>,
   options?: MediaRecorderOptions
 ) {
-  return useEffect(() => {
+  useEffect(() => {
     if (!stream) return;
 
     if (isRecording) {
@@ -163,42 +163,60 @@ export function useMediaRecorder(
   return result;
 }
 
-function useMediaInputStreamInit(
-  constraints: MediaStreamConstraints,
-  setAudioDevices: React.Dispatch<React.SetStateAction<MediaDeviceInfo[]>>,
-  setVideoDevices: React.Dispatch<React.SetStateAction<MediaDeviceInfo[]>>,
-  setStream: React.Dispatch<React.SetStateAction<MediaStream | null>>
-) {
-  return useEffect(() => {
-    const init = async () => {
-      try {
-        // Request permission to use devices
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+export function useMediaInputDevices(isPermissionRequested: boolean) {
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
-        // Get a list of all media devices
-        const devices = await navigator.mediaDevices.enumerateDevices();
+  const init = async () => {
+    try {
+      // Get a list of all media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
 
-        // Set the devices list
-        setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
-        setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
+      // Set the devices list
+      setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
+      setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
 
-        // Set the stream to the default device
-        setStream(stream);
+      // Get the default device ID
+    } catch (error) {
+      console.error("Error getting device", error);
+    }
+  };
 
-        // Get the default device ID
-      } catch (error) {
-        console.error("Error getting device", error);
-      }
-    };
+  // Try to initialize the devices on first render
+  useEffect(() => {
     init();
   }, []);
+
+  // Re-initialize the devices when permission is requested
+  useEffect(() => {
+    init();
+  }, [isPermissionRequested]);
+
+  return [audioDevices, videoDevices] as const;
 }
 
-function useAudioStreamConstraintChange(
-  constraints: MediaStreamConstraints,
-  stream: MediaStream | null,
-  setStream: React.Dispatch<React.SetStateAction<MediaStream | null>>
-) {
+export function useMediaStream(constraints: MediaStreamConstraints) {
+  // A stream that combines tracks from the selected audio and video devices
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isPermissionRequested, setIsPermissionRequested] = useState(false);
+
+  const updateStream = async () => {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      setIsPermissionRequested(true);
+      setStream(newStream);
+    } catch (error) {
+      console.error("Error getting device", error);
+    }
+  };
+
+  // Initialize the stream on first render
+  // to request permission to use the devices
+  useEffect(() => {
+    updateStream();
+  }, []);
+
+  // Update the stream when the constraints change
   const audioConstraints = constraints.audio;
   const videoConstraints = constraints.video;
   const audioDeviceId =
@@ -206,18 +224,7 @@ function useAudioStreamConstraintChange(
   const videoDeviceId =
     typeof videoConstraints === "boolean" ? null : videoConstraints?.deviceId;
 
-  return useEffect(() => {
-    if (!stream) return;
-
-    const updateStream = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setStream(stream);
-      } catch (error) {
-        console.error("Error getting device", error);
-      }
-    };
-
+  useEffect(() => {
     updateStream();
   }, [
     constraints,
@@ -226,26 +233,20 @@ function useAudioStreamConstraintChange(
     audioDeviceId,
     videoDeviceId,
   ]);
+
+  return [stream, isPermissionRequested] as const;
 }
 
 export function useMediaInputStream(constraints: MediaStreamConstraints) {
   // A stream that combines tracks from the selected audio and video devices
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [stream, isPermissionRequested] = useMediaStream(constraints);
 
   // A list of all available media devices, separated by kind
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-
-  // Init
-  useMediaInputStreamInit(
-    constraints,
-    setAudioDevices,
-    setVideoDevices,
-    setStream
+  // This will also set the stream if it hasn't been initialized yet
+  // As it needs to request permission to use the devices
+  const [audioDevices, videoDevices] = useMediaInputDevices(
+    isPermissionRequested
   );
-
-  // Update audio stream when constraints change
-  useAudioStreamConstraintChange(constraints, stream, setStream);
 
   return {
     stream,
