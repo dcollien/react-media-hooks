@@ -1,0 +1,21 @@
+button {
+    cursor: pointer;
+}
+
+button.record {
+    background-color: #af4c4c;
+    color: white;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button.stop {
+    background-color: #616161;
+    color: white;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
