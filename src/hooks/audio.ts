@@ -75,7 +75,9 @@ export function useAnalyser(
       if (!ref.current) return;
       source.disconnect(ref.current);
     };
-  }, [ref.current, source]);
+
+    // ref.current will change if the audioContext initializes
+  }, [audioContext, source]);
 
   return ref.current;
 }

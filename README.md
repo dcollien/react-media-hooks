@@ -8,7 +8,7 @@ Hooks for dealing with WebAudio
 
 #### useAudioContext
 
-```
+```typescript
 useAudioContext(): AudioContext | null
 ```
 
@@ -22,7 +22,7 @@ The context is stored as component state so component renders will be triggered 
 
 #### useAudioSource
 
-```
+```typescript
 useAudioSource(
     audioContext: AudioContext | null,
     stream: MediaStream | null
@@ -35,7 +35,7 @@ The returned source node is stored as component state so component renders will 
 
 #### useAnalyser
 
-```
+```typescript
 useAnalyser(
   audioContext: AudioContext | null,
   source: MediaStreamAudioSourceNode | null,
@@ -47,7 +47,7 @@ Given an AudioContext and MediaStreamAudioSourceNode, returns an AnalyserNode. W
 
 #### useAudioLevel
 
-```
+```typescript
 useAudioLevel(
   audioContext: AudioContext | null,
   source: MediaStreamAudioSourceNode | null,
@@ -64,7 +64,7 @@ The `updateInterval` controls how frequently the volume level is sampled, and ca
 
 #### useAudioDeviceIdConstraints
 
-```
+```typescript
 useAudioDeviceIdConstraints(
   deviceId: string | null
 ): MediaStreamConstraints
@@ -78,10 +78,10 @@ If the `deviceId` is `null` then the constraints will be set to use the default 
 
 Hooks for dealing with MediaDevices
 
-#### useMediaInputStream
+#### useMediaInputStreamDeviceInfo
 
-```
-useMediaInputStream(
+```typescript
+useMediaInputStreamDeviceInfo(
     constraints: MediaStreamConstraints | null
 ): {
     stream: MediaStream | null,
@@ -92,15 +92,27 @@ useMediaInputStream(
 
 Given MediaStreamConstraints, returns a MediaStream and two lists of device info for audio and video respectively. When the constraints change (either the object reference, the value of its `audio` or `video` properties, or their respective `deviceId` properties), then the stream will be replaced with a new MediaStream for that set of constraints.
 
-`useMediaInputStream` will request permission to use the available devices and update the stream and device lists when permission is granted.
-
-The stream and device lists are component state (to trigger renders).
+`useMediaInputStreamDeviceInfo` will request permission to use the available devices and update the stream and device lists when permission is granted.
 
 Setting `constraints` to `null` will stop the stream.
 
+#### useMediaInputDeviceInfo
+
+```typescript
+useMediaInputDeviceInfo(requestConstraints?: {
+    audio: boolean;
+    video: boolean;
+}): {
+    audioDevices: MediaDeviceInfo[];
+    videoDevices: MediaDeviceInfo[];
+}
+```
+
+Opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
+
 #### useMediaStream
 
-```
+```typescript
 useMediaStream(
     constraints: MediaStreamConstraints | null
 ): MediaStream
@@ -112,7 +124,7 @@ Setting `constraints` to `null` will stop the stream.
 
 #### useMediaInputDevices
 
-```
+```typescript
 useMediaInputDevices(
     isPermissionGranted: boolean
 ): readonly [MediaDeviceInfo[], MediaDeviceInfo[]]
@@ -122,9 +134,9 @@ Given a flag for if permission has been granted, returns two lists of media devi
 
 Changing the `isPermissionGranted` flag will re-initialize the lists.
 
-#### useMediaRecorder
+#### useBlobMediaRecorder
 
-```
+```typescript
 useMediaRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
@@ -141,7 +153,7 @@ If a stream changes during recording, a new audio file Blob will be added to the
 
 The `startTime` is the ms since the `timeOrigin`, i.e. compare against `performance.now()`.
 
-```
+```typescript
 useElapsedTime(
     result: RecordedMediaResult,
     isRecording: boolean,
@@ -155,3 +167,27 @@ useElapsedTime(
 ```
 
 Can be used as a shortcut to retrieve the elapsed time since a result was created, updating every `updateInterval`.
+
+### useMediaRecorder
+
+```typescript
+useMediaRecorder(
+  stream: MediaStream | null,
+  isRecording: boolean,
+  onDataAvailable?: (event: BlobEvent) => void,
+  onStart?: (event: MediaRecorderEvent) => void,
+  onResume?: (event: MediaRecorderEvent) => void,
+  onStop?: (event: MediaRecorderEvent) => void,
+  options?: UseMediaRecorderOptions
+): void
+```
+
+Start recording on a stream. Toggle `isRecording` to start/stop recording. If a stream is changed mid-recording, `onStop` will be called followed by `onResume` when a new stream starts.
+
+`onDataAvailable` sends `event.data` that can be combined into an audio file `onStop` using:
+
+```typescript
+const blob = new Blob([data0, data1, ...], {
+  type: event.recorder.mimeType,
+});
+```

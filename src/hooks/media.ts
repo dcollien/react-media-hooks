@@ -55,57 +55,85 @@ export function useElapsedTime(
   return elapsed;
 }
 
+export interface MediaRecorderEvent extends Event {
+  recorder: MediaRecorder;
+}
+
+const toRecorderEvent = (event: Event, recorder: MediaRecorder) => {
+  const newEvent = event as MediaRecorderEvent;
+
+  Object.defineProperty(newEvent, "recorder", {
+    value: recorder,
+    writable: false, // Prevent reassignment
+    enumerable: true, // Make it show up in console logs
+  });
+
+  return newEvent;
+};
+
+export interface UseMediaRecorderOptions extends MediaRecorderOptions {
+  timeSlice?: number;
+}
+
 // Create the MediaRecorder when the stream is ready or the isRecording flag changes
-function useMediaRecorderHelper(
+export function useMediaRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
-  mediaRecorderRef: React.RefObject<MediaRecorder | null>,
-  chunksRef: React.RefObject<Blob[]>,
-  setResult: React.Dispatch<React.SetStateAction<RecordedMediaResult>>,
-  options?: MediaRecorderOptions
+  onDataAvailable?: (event: BlobEvent) => void,
+  onStart?: (event: MediaRecorderEvent) => void,
+  onResume?: (event: MediaRecorderEvent) => void,
+  onStop?: (event: MediaRecorderEvent) => void,
+  options?: UseMediaRecorderOptions
 ) {
+  // Reference to the MediaRecorder
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  // Also hold a reference to the previous MediaRecorder
+  const previousMediaRecorderRef = useRef<MediaRecorder | null>(null);
+
   useEffect(() => {
     if (!stream) return;
 
     if (isRecording) {
       // Create a new recording
-      const previousRecorder = mediaRecorderRef.current;
+      previousMediaRecorderRef.current = mediaRecorderRef.current;
       const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
 
       recorder.addEventListener("dataavailable", (event) => {
-        // Store the recorded chunks in memory when available
-        chunksRef.current.push(event.data);
-      });
-
-      recorder.addEventListener("start", (event) => {
-        chunksRef.current = [];
-
-        if (!previousRecorder) {
-          // No previous recording to be resumed
-          setResult({
-            startTime: event.timeStamp,
-            blobs: [],
-          });
+        if (onDataAvailable) {
+          onDataAvailable(event);
         }
       });
 
-      recorder.addEventListener("stop", () => {
-        // Combine the chunks into a single Blob
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType,
-        });
+      recorder.addEventListener("start", (event) => {
+        const recorderEvent = toRecorderEvent(event, recorder);
 
-        // Create a URL for the Blob as well
-        // and store the Blob and URL in the result
-        setResult((result) => ({
-          startTime: result.startTime,
-          blobs: [...result.blobs, blob],
-        }));
+        const isResuming = previousMediaRecorderRef.current !== null;
+
+        if (isResuming) {
+          // Resume recording after the stream changes
+          if (onResume) {
+            onResume(recorderEvent);
+          }
+        } else {
+          // Start recording when isRecording becomes true
+          if (onStart) {
+            onStart(recorderEvent);
+          }
+        }
+      });
+
+      recorder.addEventListener("stop", (event) => {
+        const recorderEvent = toRecorderEvent(event, recorder);
+
+        if (onStop) {
+          onStop(recorderEvent);
+        }
       });
 
       // Start recording
-      recorder.start();
+      recorder.start(options?.timeSlice);
     } else if (mediaRecorderRef.current) {
       const recorder = mediaRecorderRef.current;
 
@@ -127,10 +155,10 @@ function useMediaRecorderHelper(
   }, [stream, isRecording]);
 }
 
-export function useMediaRecorder(
+export function useBlobMediaRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
-  options?: MediaRecorderOptions
+  options?: UseMediaRecorderOptions
 ) {
   // Returns: { result: RecordedMediaResult }
   // The result object contains the recorded media as Blobs and URLs
@@ -139,9 +167,6 @@ export function useMediaRecorder(
   // If the stream changes mid-recording, a new blob/url will be created
   // If the isRecording flag changes mid-recording, the recording will be stopped
   // and a new array of blobs/urls will be created if the recording is started again
-
-  // Reference to the MediaRecorder
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   // Reference to the chunks stored so far
   const chunksRef = useRef<Blob[]>([]);
@@ -152,12 +177,50 @@ export function useMediaRecorder(
     blobs: [],
   });
 
-  useMediaRecorderHelper(
+  const onDataAvailable = (event: BlobEvent) => {
+    // Store the recorded chunks in memory when available
+    chunksRef.current.push(event.data);
+  };
+
+  const onStart = (event: MediaRecorderEvent) => {
+    // Reset the chunks when recording starts
+    chunksRef.current = [];
+
+    // Set the start time and clear the completed blobs
+    setResult({
+      startTime: event.timeStamp,
+      blobs: [],
+    });
+  };
+
+  const onResume = () => {
+    // Reset the chunks
+    chunksRef.current = [];
+  };
+
+  const onStop = (event: MediaRecorderEvent) => {
+    if (!event.recorder) return;
+
+    // Combine the chunks into a single Blob
+    const blob = new Blob(chunksRef.current, {
+      type: event.recorder.mimeType,
+    });
+
+    // Create a URL for the Blob as well
+    // and store the Blob and URL in the result
+    setResult((result) => ({
+      startTime: result.startTime,
+      blobs: [...result.blobs, blob],
+    }));
+  };
+
+  useMediaRecorder(
     stream,
     isRecording,
-    mediaRecorderRef,
-    chunksRef,
-    setResult,
+    onDataAvailable,
+    onStart,
+    onResume,
+    onStop,
     options
   );
 
@@ -364,6 +427,10 @@ export function useMediaInputStreamDeviceInfo(
   };
 }
 
+const isValidMediaList = (list: MediaDeviceInfo[]) => {
+  return list.length && list[0].deviceId !== "";
+};
+
 export function useMediaInputDeviceInfo(
   requestConstraints = {
     audio: true,
@@ -385,7 +452,7 @@ export function useMediaInputDeviceInfo(
 
   // Stop access to the streams once we have saved the devices
   useEffect(() => {
-    if (_audioList.length || _videoList.length) {
+    if (isValidMediaList(_audioList) || isValidMediaList(_videoList)) {
       setAudioDevices(_audioList);
       setVideoDevices(_videoList);
       setConstraints(null);

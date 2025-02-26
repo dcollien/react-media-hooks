@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 
 import {
-  useMediaRecorder,
+  useBlobMediaRecorder,
   useElapsedTime,
   useMediaStream,
   useMediaInputDeviceInfo,
@@ -11,6 +11,7 @@ import { useBlobUrls } from "./hooks/blob";
 
 import { DeviceSelector } from "./components/DeviceSelector";
 import { AudioRecorder } from "./components/AudioRecorder";
+import { VideoRecorder } from "./components/VideoRecorder";
 
 function DeviceSelectionStep({
   audioDeviceId,
@@ -53,7 +54,7 @@ function AudioRecorderStep({
     : null;
 
   const stream = useMediaStream(constraints);
-  const result = useMediaRecorder(stream, isRecording);
+  const result = useBlobMediaRecorder(stream, isRecording);
   const timeElapsed = useElapsedTime(result, isRecording);
   const blobUrls = useBlobUrls(result.blobs);
 
@@ -73,6 +74,50 @@ function AudioRecorderStep({
       {blobUrls.map((url, i) => (
         <div key={i}>
           <audio controls src={url}></audio>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VideoRecorderStep({
+  audioDeviceId,
+  videoDeviceId,
+}: {
+  audioDeviceId: string | null;
+  videoDeviceId: string | null;
+}) {
+  const [isRecording, setIsRecording] = useState(false);
+
+  const constraints =
+    audioDeviceId && videoDeviceId
+      ? {
+          audio: { deviceId: { exact: audioDeviceId } },
+          video: { deviceId: { exact: videoDeviceId } },
+        }
+      : null;
+
+  const stream = useMediaStream(constraints);
+  const result = useBlobMediaRecorder(stream, isRecording);
+  const timeElapsed = useElapsedTime(result, isRecording);
+  const blobUrls = useBlobUrls(result.blobs);
+
+  return (
+    <div>
+      <VideoRecorder
+        stream={stream}
+        isRecording={isRecording}
+        timeElapsed={timeElapsed}
+        onRecord={() => {
+          setIsRecording(true);
+        }}
+        onStop={() => {
+          setIsRecording(false);
+        }}
+      />
+      {blobUrls.map((url, i) => (
+        <div key={i}>
+          <video controls src={url}></video>
         </div>
       ))}
     </div>
@@ -118,12 +163,19 @@ function App() {
     return (
       <div>
         <h1>Step 4: Take a breath</h1>
+        <button onClick={() => setStep(4)}>Next</button>
+        <button onClick={() => setStep(2)}>Back</button>
       </div>
     );
   } else if (step === 4) {
     return (
       <div>
         <h1>Step 5: Record your video</h1>
+        <VideoRecorderStep
+          audioDeviceId={audioDeviceId}
+          videoDeviceId={videoDeviceId}
+        />
+        <button onClick={() => setStep(3)}>Back</button>
       </div>
     );
   }
