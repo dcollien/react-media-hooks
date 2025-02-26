@@ -44,6 +44,7 @@ export function useBlobUrls(blobs: Blob[]) {
     return () => {
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blobs, blobs.length]);
 
   return urls;

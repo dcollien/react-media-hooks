@@ -1,10 +1,28 @@
-# Example Audio Recorder and Media Hooks with React / MediaDevices / WebAudio APIs
+# React Hooks for media and audio
+
+A React hook library for media and audio utilities
+
+```
+npm install react-media-hooks
+```
+
+```typescript
+import { useMediaRecorder, useAudioContext } from "react-media-hooks";
+
+// or
+import { useMediaRecorder } from "react-media-hooks/use-media";
+import { useAudioContext } from "react-media-hooks/use-audio";
+```
 
 ## Hooks
 
 ### Audio
 
-Hooks for dealing with WebAudio
+Hooks for WebAudio
+
+```typescript
+import {...} from 'react-media-hooks/use-audio`
+```
 
 #### useAudioContext
 
@@ -65,6 +83,10 @@ The `updateInterval` controls how frequently the volume level is sampled, and ca
 ### Media
 
 Hooks for dealing with MediaDevices
+
+```typescript
+import {...} from 'react-media-hooks/use-media`
+```
 
 #### useMediaInputStreamDeviceInfo
 
@@ -203,3 +225,39 @@ const blob = new Blob([data0, data1, ...], {
 ```
 
 `UseMediaRecorderOptions` has a `timeSlice` property which controls how many ms are recorded until `onDataAvailable` is called.
+
+### Utility Hooks used in the Demo App
+
+#### useInterval
+
+```typescript
+import { useInterval } from "react-media-hooks/use-interval";
+```
+
+```
+useInterval(callback: () => void, delay: number | null): void
+```
+
+Calls `callback` every `delay` ms.
+
+Setting `delay` to `null` will stop it.
+
+#### useBlobUrls
+
+```typescript
+import { useBlobUrls, downloadBlobs } from "react-media-hooks/use-blob";
+```
+
+```
+useBlobUrls(blobs: Blob[]): string[]
+```
+
+Create blob urls for each blob whenever the `blobs` array changes. Revokes old URLs.
+
+Also utility function:
+
+```
+downloadBlobs(blobs: Blob[], filePrefix?: string): void
+```
+
+Which triggers downloads of an array of blobs.

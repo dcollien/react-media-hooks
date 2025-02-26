@@ -1,7 +1,7 @@
 {
   "name": "react-media-hooks",
   "private": false,
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "A React hook library for media and audio utilities",
   "type": "module",
   "main": "./dist/use-all.cjs.js",
