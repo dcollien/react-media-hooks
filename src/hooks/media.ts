@@ -262,59 +262,6 @@ const stopStream = (stream: MediaStream | null) => {
   }
 };
 
-const startStream = async (
-  streamsRef: React.RefObject<Record<string, MediaStream | "pending">>,
-  timestamp: number,
-  constraints: MediaStreamConstraints | null
-) => {
-  streamsRef.current[timestamp] = "pending";
-
-  try {
-    const newStream = constraints
-      ? await navigator.mediaDevices.getUserMedia(constraints)
-      : null;
-
-    if (streamsRef.current[timestamp] === "pending") {
-      if (newStream) {
-        streamsRef.current[timestamp] = newStream;
-      } else {
-        delete streamsRef.current[timestamp];
-      }
-    } else {
-      stopStream(newStream);
-    }
-
-    return newStream;
-  } catch (error) {
-    console.error("Error getting user media from device", error);
-  }
-
-  return null;
-};
-
-const stopOldStreams = (
-  streamsRef: React.RefObject<Record<string, MediaStream | "pending">>,
-  timestamp: number
-) => {
-  const oldStreamTimestamps = Object.keys(streamsRef.current);
-
-  // stop all old streams
-  oldStreamTimestamps.forEach((timestampKey) => {
-    const streamTimestamp = parseInt(timestampKey, 10);
-
-    // older than the current timestamp
-    if (streamTimestamp < timestamp) {
-      const stream = streamsRef.current[streamTimestamp];
-
-      if (stream !== "pending") {
-        stopStream(stream);
-      }
-
-      delete streamsRef.current[streamTimestamp];
-    }
-  });
-};
-
 const hashDeviceId = (deviceId: ConstrainDOMString | null) => {
   if (!deviceId) {
     return null;
@@ -363,46 +310,68 @@ const hashDeviceIds = (constraints: MediaStreamConstraints | null) => {
 export function useMediaStream(
   constraints: MediaStreamConstraints | null
 ): MediaStream | null {
-  // A history of pending and open streams, so we can ensure we stop old streams
-  const streamsRef = useRef<Record<string, MediaStream | "pending">>({});
-
-  // The most recent stream timestamp, so we don't overwrite the current stream
-  // with an older initiation
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_mostRecentStreamTimestamp, setMostRecentTimestamp] = useState<
-    number | null
-  >(null);
-
-  // The current stream, which is the most recently initiated stream
-  const [currentStream, setCurrentStream] = useState<MediaStream | null>(null);
-
   const { audioIdHash, videoIdHash } = hashDeviceIds(constraints);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, forceUpdate] = useState({});
+
+  const lastInitTimestampRef = useRef<number | null>(null);
+
+  const closeCurrentStream = () => {
+    lastInitTimestampRef.current = null;
+
+    if (streamRef.current) {
+      stopStream(streamRef.current);
+      streamRef.current = null;
+    }
+  };
 
   useEffect(() => {
-    const timestamp = Date.now();
-    stopOldStreams(streamsRef, timestamp);
-    setMostRecentTimestamp(timestamp);
+    if (constraints) {
+      // Constraints given, start a new stream
 
-    // Streams are started asynchronously
-    // We need to check the timestamp to check to see if the stream is still the most recent
-    startStream(streamsRef, timestamp, constraints).then((stream) => {
-      setMostRecentTimestamp((mostRecentTimestamp) => {
-        if (mostRecentTimestamp === timestamp) {
-          setCurrentStream(stream);
-        }
+      // Store the timestamp of the current initialization
+      const initTimestamp = Date.now();
+      lastInitTimestampRef.current = initTimestamp;
 
-        return mostRecentTimestamp;
-      });
-    });
+      // Request the user media stream
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          // When the stream is ready
+          if (lastInitTimestampRef.current === initTimestamp) {
+            // This is the most recent stream
+
+            if (streamRef.current) {
+              // Stop the previous stream
+              stopStream(streamRef.current);
+            }
+
+            // Store the stream
+            streamRef.current = stream;
+          } else {
+            // Ignore this stream because it is not the most recent
+            stopStream(stream);
+          }
+
+          // Force update to re-render the component when the stream changes
+          forceUpdate({});
+        })
+        .catch((error) => {
+          console.error("Error getting user media from device", error);
+        });
+    } else {
+      closeCurrentStream();
+    }
 
     return () => {
-      stopOldStreams(streamsRef, timestamp);
+      closeCurrentStream();
     };
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioIdHash, videoIdHash]);
 
-  return currentStream;
+  return streamRef.current;
 }
 
 export function useMediaInputStreamDeviceInfo(
@@ -431,6 +400,40 @@ const isValidMediaList = (list: MediaDeviceInfo[]) => {
   return list.length && list[0].deviceId !== "";
 };
 
+export function useMediaPermissionsQuery() {
+  const [microphone, setMicrophone] = useState<
+    PermissionState | "unsupported" | null
+  >(null);
+  const [camera, setCamera] = useState<PermissionState | "unsupported" | null>(
+    null
+  );
+
+  useEffect(() => {
+    navigator.permissions
+      .query({
+        name: "microphone" as PermissionName,
+      })
+      .then((micPerm) => {
+        setMicrophone(micPerm.state);
+      })
+      .catch(() => {
+        setMicrophone("unsupported");
+      });
+    navigator.permissions
+      .query({
+        name: "camera" as PermissionName,
+      })
+      .then((cameraPerm) => {
+        setCamera(cameraPerm.state);
+      })
+      .catch(() => {
+        setCamera("unsupported");
+      });
+  }, []);
+
+  return { microphone, camera };
+}
+
 export function useMediaInputDeviceInfo(
   requestConstraints = {
     audio: true,
@@ -447,9 +450,31 @@ export function useMediaInputDeviceInfo(
     video: boolean;
   } | null>(requestConstraints);
 
-  // Get the devices, or stop the stream once we have them
-  const { audioDevices: _audioList, videoDevices: _videoList } =
-    useMediaInputStreamDeviceInfo(constraints);
+  const { microphone, camera } = useMediaPermissionsQuery();
+
+  // Check if the permissions have been initialized yet
+  const isPermissionsInitialized = microphone !== null && camera !== null;
+
+  // Check if the permissions are granted and if the permission request is required
+  const isAudioPermitted = microphone === "granted";
+  const isVideoPermitted = camera === "granted";
+
+  const isRequestRequired =
+    (constraints?.audio && !isAudioPermitted) ||
+    (constraints?.video && !isVideoPermitted);
+
+  // If we've checked permissions and a request is still required, request it
+  const stream = useMediaStream(
+    isPermissionsInitialized && isRequestRequired ? constraints : null
+  );
+
+  // Check if the permission is granted by either means
+  const isPermissionGranted = stream !== null || !isRequestRequired;
+
+  // A list of all available media devices, separated by kind
+  // This will also set the stream if it hasn't been initialized yet
+  // As it needs to request permission to use the devices
+  const [_audioList, _videoList] = useMediaInputDevices(isPermissionGranted);
 
   // Stop access to the streams once we have saved the devices
   useEffect(() => {

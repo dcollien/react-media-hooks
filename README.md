@@ -112,9 +112,25 @@ useMediaInputDeviceInfo(requestConstraints?: {
 }
 ```
 
-Opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
+Checks whether permissions have already been given, and if not it opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
 
 Use `setConstraints` to re-request the devices.
+
+#### useMediaPermissionsQuery
+
+```
+useMediaPermissionsQuery(): {
+    microphone: PermissionState | "unsupported" | null;
+    camera: PermissionState | "unsupported" | null;
+}
+```
+
+`microphone` and `camera` will switch from `null` to one of:
+
+- "granted": Permission has already been given
+- "denied": Permission was explicitly denied
+- "prompt": Permission has not been requested
+- "unsupported": The browser doesn't support querying for permissions
 
 #### useMediaStream
 

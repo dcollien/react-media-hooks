@@ -29,7 +29,7 @@ export function AudioRecorder({
         {isRecording ? (
           <button
             onClick={onStop}
-            disabled={!isRecording}
+            disabled={!isRecording || !stream}
             className="stop"
             title="Stop"
           >
@@ -38,7 +38,7 @@ export function AudioRecorder({
         ) : (
           <button
             onClick={onRecord}
-            disabled={isRecording}
+            disabled={isRecording || !stream}
             className="record"
             title="Record"
           >
@@ -46,7 +46,11 @@ export function AudioRecorder({
           </button>
         )}
       </div>
-      <AudioScroller audioStream={stream} disabled={!isRecording} />
+      {!stream ? (
+        <p>No audio input device found</p>
+      ) : (
+        <AudioScroller audioStream={stream} disabled={!isRecording} />
+      )}
       <pre style={{ margin: "0 10px" }}>
         {minutes}:{seconds}:{milliseconds}
       </pre>
