@@ -150,7 +150,7 @@ useBlobMediaRecorder(
 ): {
   startTime: number | null;
   blobs: Blob[];
-}
+} as RecordedMediaResult
 ```
 
 Start recording on a stream. Toggle `isRecording` to start/stop recording. Starting a new recording will re-initialize the `blobs` array. Stopping recording will populate the `blobs` array with new data.
