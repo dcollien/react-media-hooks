@@ -191,3 +191,5 @@ const blob = new Blob([data0, data1, ...], {
   type: event.recorder.mimeType,
 });
 ```
+
+`UseMediaRecorderOptions` has a `timeSlice` property which controls how many ms are recorded until `onDataAvailable` is called.
