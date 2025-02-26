@@ -1,13 +1,12 @@
 import { useState } from "react";
 import "./App.css";
 
-import { useAudioDeviceIdConstraints } from "./hooks/audio";
 import {
   useBlobMediaRecorder,
   useMediaInputStreamDeviceInfo,
   useElapsedTime,
 } from "./hooks/media";
-import { dowloadBlobs, useBlobUrls } from "./hooks/blob";
+import { downloadBlobs, useBlobUrls } from "./hooks/blob";
 
 import { DeviceSelector } from "./components/DeviceSelector";
 import { AudioRecorder } from "./components/AudioRecorder";
@@ -16,7 +15,9 @@ function App() {
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
   // Get the audio stream
-  const constraints = useAudioDeviceIdConstraints(deviceId);
+  const constraints = {
+    audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+  };
   const { stream, audioDevices } = useMediaInputStreamDeviceInfo(constraints);
 
   // Recorder
@@ -57,7 +58,7 @@ function App() {
           <hr />
           <button
             onClick={() => {
-              dowloadBlobs(result.blobs);
+              downloadBlobs(result.blobs);
             }}
           >
             Download

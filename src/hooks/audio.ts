@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInterval } from "./interval";
 
 let globalAudioContext: AudioContext | null = null;
@@ -120,18 +120,4 @@ export function useAudioLevel(
   }, updateInterval);
 
   return audioLevel;
-}
-
-// Returns the stream constraints for the audio device,
-// or the default audio constraints if no deviceId is provided
-// This is memoized so it only triggers updates when the deviceId changes
-export function useAudioDeviceIdConstraints(
-  deviceId: string | null
-): MediaStreamConstraints {
-  return useMemo<MediaStreamConstraints>(() => {
-    return {
-      audio: deviceId ? { deviceId: { exact: deviceId } } : true,
-      video: false,
-    };
-  }, [deviceId]);
 }

@@ -62,18 +62,6 @@ Given an AudioContext and MediaStreamAudioSourceNode, returns the current volume
 
 The `updateInterval` controls how frequently the volume level is sampled, and can be set to `null` to pause updates.
 
-#### useAudioDeviceIdConstraints
-
-```typescript
-useAudioDeviceIdConstraints(
-  deviceId: string | null
-): MediaStreamConstraints
-```
-
-Given a device ID, returns a memoized object representing the MediaStreamConstraints for this device (exact match). This object's reference changes when `deviceId` changes.
-
-If the `deviceId` is `null` then the constraints will be set to use the default audio device.
-
 ### Media
 
 Hooks for dealing with MediaDevices

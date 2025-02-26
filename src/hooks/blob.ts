@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Helper function to trigger downloads of blobs as files
-export function dowloadBlobs(blobs: Blob[], filePrefix = "recording") {
+export function downloadBlobs(blobs: Blob[], filePrefix = "recording") {
   if (blobs.length === 0) return;
 
   const temporaryElements: Array<HTMLAnchorElement> = [];

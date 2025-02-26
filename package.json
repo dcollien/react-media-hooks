@@ -1,13 +1,47 @@
 {
-  "name": "audio-scroller",
-  "private": true,
-  "version": "0.0.0",
+  "name": "react-media-hooks",
+  "private": false,
+  "version": "1.0.0",
+  "description": "A React hook library for media and audio utilities",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+  "main": "./dist/use-all.cjs.js",
+  "module": "./dist/use-all.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./use-all": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/use-all.es.js",
+      "require": "./dist/use-all.cjs.js"
+    },
+    "./use-audio": {
+      "types": "./dist/hooks/audio.d.ts",
+      "import": "./dist/use-audio.es.js",
+      "require": "./dist/use-audio.cjs.js"
+    },
+    "./use-media": {
+      "types": "./dist/hooks/media.d.ts",
+      "import": "./dist/use-media.es.js",
+      "require": "./dist/use-media.cjs.js"
+    },
+    "./use-blob": {
+      "types": "./dist/hooks/blob.d.ts",
+      "import": "./dist/use-blob.es.js",
+      "require": "./dist/use-blob.cjs.js"
+    },
+    "./use-interval": {
+      "types": "./dist/hooks/interval.d.ts",
+      "import": "./dist/use-interval.es.js",
+      "require": "./dist/use-interval.cjs.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/use-all.es.js",
+      "require": "./dist/use-all.cjs.js"
+    }
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0"
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -15,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.5",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
@@ -22,8 +57,15 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "globals": "^15.14.0",
-    "typescript": "~5.7.2",
+    "typescript": "~5.7.3",
     "typescript-eslint": "^8.22.0",
-    "vite": "^6.1.0"
+    "vite": "^6.1.0",
+    "vite-plugin-dts": "^4.5.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   }
 }
