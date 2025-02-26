@@ -128,7 +128,7 @@ Use `setConstraints` to re-request the devices.
 
 #### useMediaPermissionsQuery
 
-```
+```typescript
 useMediaPermissionsQuery(): {
     microphone: PermissionState | "unsupported" | null;
     camera: PermissionState | "unsupported" | null;
