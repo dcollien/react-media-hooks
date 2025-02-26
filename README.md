@@ -104,11 +104,17 @@ useMediaInputDeviceInfo(requestConstraints?: {
     video: boolean;
 }): {
     audioDevices: MediaDeviceInfo[];
-    videoDevices: MediaDeviceInfo[];
+    videoDevices: MediaDeviceInfo[];,
+    setConstraints: React.Dispatch<React.SetStateAction<{
+        audio: boolean;
+        video: boolean;
+    } | null>>;
 }
 ```
 
 Opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
+
+Use `setConstraints` to re-request the devices.
 
 #### useMediaStream
 

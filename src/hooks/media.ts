@@ -442,9 +442,10 @@ export function useMediaInputDeviceInfo(
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
   // Initialize the constraints with the requested constraints
-  const [constraints, setConstraints] = useState<MediaStreamConstraints | null>(
-    requestConstraints
-  );
+  const [constraints, setConstraints] = useState<{
+    audio: boolean;
+    video: boolean;
+  } | null>(requestConstraints);
 
   // Get the devices, or stop the stream once we have them
   const { audioDevices: _audioList, videoDevices: _videoList } =
@@ -452,12 +453,20 @@ export function useMediaInputDeviceInfo(
 
   // Stop access to the streams once we have saved the devices
   useEffect(() => {
+    if (!constraints) return;
+
     if (isValidMediaList(_audioList) || isValidMediaList(_videoList)) {
       setAudioDevices(_audioList);
       setVideoDevices(_videoList);
       setConstraints(null);
     }
-  }, [_audioList, _videoList, _audioList.length, _videoList.length]);
+  }, [
+    _audioList,
+    _videoList,
+    _audioList.length,
+    _videoList.length,
+    constraints,
+  ]);
 
-  return { audioDevices, videoDevices };
+  return { audioDevices, videoDevices, setConstraints };
 }

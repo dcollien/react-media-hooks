@@ -133,6 +133,10 @@ function App() {
     return (
       <div>
         <h1>Step 1: Select your device</h1>
+        <p>
+          Notice that the recording icon only activates momentarily, enough time
+          to fetch a valid list of devices.
+        </p>
         <DeviceSelectionStep
           audioDeviceId={audioDeviceId}
           videoDeviceId={videoDeviceId}
@@ -146,6 +150,10 @@ function App() {
     return (
       <div>
         <h1>Step 2: Take a breath</h1>
+        <p>
+          Notice that the recording icon may eventually disappear. The stream is
+          no longer open.
+        </p>
         <button onClick={() => setStep(2)}>Next</button>
         <button onClick={() => setStep(0)}>Back</button>
       </div>
