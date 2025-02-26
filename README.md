@@ -234,7 +234,7 @@ const blob = new Blob([data0, data1, ...], {
 import { useInterval } from "react-media-hooks/use-interval";
 ```
 
-```
+```typescript
 useInterval(callback: () => void, delay: number | null): void
 ```
 
@@ -248,7 +248,7 @@ Setting `delay` to `null` will stop it.
 import { useBlobUrls, downloadBlobs } from "react-media-hooks/use-blob";
 ```
 
-```
+```typescript
 useBlobUrls(blobs: Blob[]): string[]
 ```
 
@@ -256,7 +256,7 @@ Create blob urls for each blob whenever the `blobs` array changes. Revokes old U
 
 Also utility function:
 
-```
+```typescript
 downloadBlobs(blobs: Blob[], filePrefix?: string): void
 ```
 
