@@ -143,7 +143,7 @@ Changing the `isPermissionGranted` flag will re-initialize the lists.
 #### useBlobMediaRecorder
 
 ```typescript
-useMediaRecorder(
+useBlobMediaRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
   options?: MediaRecorderOptions
