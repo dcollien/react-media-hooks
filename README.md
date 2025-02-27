@@ -14,6 +14,121 @@ import { useMediaRecorder } from "react-media-hooks/use-media";
 import { useAudioContext } from "react-media-hooks/use-audio";
 ```
 
+## Example Usage
+
+```typescript
+import { useCallback, useState } from "react";
+
+import {
+  useAudioContext,
+  useAudioLevel,
+  useAudioSource,
+} from "react-media-hooks/use-audio";
+
+import {
+  useBlobMediaRecorder,
+  useElapsedTime,
+  useMediaStream,
+} from "react-media-hooks/use-media";
+
+import { useBlobUrls } from "react-media-hooks/use-blob";
+
+export function AudioRecorder({
+  audioDeviceId,
+  videoDeviceId,
+}: {
+  audioDeviceId: string | null;
+  videoDeviceId: string | null;
+}) {
+  const [isRecording, setIsRecording] = useState(false);
+
+  const constraints =
+    audioDeviceId && videoDeviceId
+      ? {
+          audio: { deviceId: { exact: audioDeviceId } },
+          video: { deviceId: { exact: videoDeviceId } },
+        }
+      : null;
+
+  // Create the media stream from the constraints
+  const stream = useMediaStream(constraints);
+
+  // Create the media recorder from the stream
+  const result = useBlobMediaRecorder(stream, isRecording);
+
+  // Calculate the time elapsed from the result
+  const timeElapsed = useElapsedTime(result, isRecording);
+
+  // Create the blob urls from the blobs in the result
+  const blobUrls = useBlobUrls(result.blobs);
+
+  // Retrieve the audio context
+  const audioContext = useAudioContext();
+
+  // Create the audio source on the audio context, from the stream
+  const audioSource = useAudioSource(audioContext, stream);
+
+  // Update the audio level (between 0 and 1) from the audio source
+  // 60 times per second
+  const { level, timestamp } = useAudioLevel(
+    audioContext,
+    audioSource,
+    1000 / 60 // update 60 times per second
+  );
+
+  // Create the video ref to attach the stream to the video element
+  const videoRef = useCallback(
+    (node: HTMLVideoElement) => {
+      if (node) node.srcObject = stream;
+    },
+    [stream]
+  );
+
+  const minutes = timeElapsed.minutes.toFixed(0).padStart(2, "0");
+  const seconds = timeElapsed.seconds.toFixed(0).padStart(2, "0");
+  const milliseconds = timeElapsed.millis.toFixed(0).padStart(3, "0");
+
+  return (
+    <div>
+      <video ref={videoRef} autoPlay playsInline muted></video>
+      <button onClick={() => setIsRecording(true)}>Record</button>
+      <button onClick={() => setIsRecording(false)}>Stop</button>
+      <hr />
+      <p>Audio level:</p>
+      <div>
+        <div
+          style={{
+            width: `${200 * level}px`,
+            height: "10px",
+            background: "black",
+          }}
+        ></div>
+      </div>
+      <pre>
+        {minutes}:{seconds}.{milliseconds}
+      </pre>
+
+      <p>
+        Changing the audioDeviceId or videoDeviceId will create a new file
+        below. Stopping/Starting the recording will clear all files and start a
+        new recording.
+      </p>
+      {blobUrls.map((url) => (
+        <div key={url}>
+          <audio controls src={url}></audio>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Demo App
+
+```
+pnpm run dev
+```
+
 ## Hooks
 
 ### Audio
