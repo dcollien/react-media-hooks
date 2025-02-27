@@ -1,43 +1,43 @@
 {
   "name": "react-media-hooks",
   "private": false,
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "A React hook library for media and audio utilities",
   "type": "module",
   "license": "MIT",
   "types": "./dist/use-all.d.ts",
-  "main": "./dist/use-all.cjs.js",
-  "module": "./dist/use-all.es.js",
+  "module": "./dist/use-all.js",
+  "main": "./dist/use-all.cjs",
   "exports": {
     "./use-all": {
       "types": "./dist/use-all.d.ts",
-      "import": "./dist/use-all.es.js",
-      "require": "./dist/use-all.cjs.js"
+      "import": "./dist/use-all.js",
+      "require": "./dist/use-all.cjs"
     },
     "./use-audio": {
       "types": "./dist/use-audio.d.ts",
-      "import": "./dist/use-audio.es.js",
-      "require": "./dist/use-audio.cjs.js"
+      "import": "./dist/use-audio.js",
+      "require": "./dist/use-audio.cjs"
     },
     "./use-media": {
       "types": "./dist/use-media.d.ts",
-      "import": "./dist/use-media.es.js",
-      "require": "./dist/use-media.cjs.js"
+      "import": "./dist/use-media.js",
+      "require": "./dist/use-media.cjs"
     },
     "./use-blob": {
       "types": "./dist/use-blob.d.ts",
-      "import": "./dist/use-blob.es.js",
-      "require": "./dist/use-blob.cjs.js"
+      "import": "./dist/use-blob.js",
+      "require": "./dist/use-blob.cjs"
     },
     "./use-interval": {
       "types": "./dist/use-interval.d.ts",
-      "import": "./dist/use-interval.es.js",
-      "require": "./dist/use-interval.cjs.js"
+      "import": "./dist/use-interval.js",
+      "require": "./dist/use-interval.cjs"
     },
     ".": {
       "types": "./dist/use-all.d.ts",
-      "import": "./dist/use-all.es.js",
-      "require": "./dist/use-all.cjs.js"
+      "import": "./dist/use-all.js",
+      "require": "./dist/use-all.cjs"
     }
   },
   "sideEffects": false,
