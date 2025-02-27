@@ -16,7 +16,7 @@ import { useAudioContext } from "react-media-hooks/use-audio";
 
 ## Example Usage
 
-```typescript
+```tsx
 import { useCallback, useState } from "react";
 
 import {
