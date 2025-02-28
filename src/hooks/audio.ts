@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useInterval } from "./interval";
 
-let globalAudioContext: AudioContext | null = null;
+let globalAudioContext: AudioContext = new AudioContext();
 
-export function initAudioContext(onInit: (context: AudioContext) => void) {
+export function initAudioContext(onInit?: (context: AudioContext) => void) {
+  if (globalAudioContext.state === "closed") {
+    globalAudioContext = new AudioContext();
+  }
+
   // AudioContext requires user interaction to start
   // otherwise it will be suspended / give a warning
   function onUserInteraction() {
-    if (!globalAudioContext) {
-      globalAudioContext = new AudioContext();
+    if (globalAudioContext.state === "suspended") {
+      globalAudioContext.resume();
     }
-    onInit(globalAudioContext);
+
+    if (onInit) {
+      onInit(globalAudioContext);
+    }
 
     // Remove event listeners after first interaction
     document.removeEventListener("click", onUserInteraction);
@@ -20,13 +27,13 @@ export function initAudioContext(onInit: (context: AudioContext) => void) {
     document.removeEventListener("pointerdown", onUserInteraction);
   }
 
-  if (!globalAudioContext) {
+  if (globalAudioContext.state === "suspended") {
     document.addEventListener("click", onUserInteraction);
     document.addEventListener("keydown", onUserInteraction);
     document.addEventListener("mousedown", onUserInteraction);
     document.addEventListener("touchstart", onUserInteraction);
     document.addEventListener("pointerdown", onUserInteraction);
-  } else {
+  } else if (onInit) {
     onInit(globalAudioContext);
   }
 }
