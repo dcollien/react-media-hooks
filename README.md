@@ -203,10 +203,10 @@ Hooks for dealing with MediaDevices
 import {...} from 'react-media-hooks/use-media`
 ```
 
-#### useMediaInputStreamDeviceInfo
+#### useMediaStreamInputDevices
 
 ```typescript
-useMediaInputStreamDeviceInfo(
+useMediaStreamInputDevices(
     constraints: MediaStreamConstraints | null
 ): {
     stream: MediaStream | null,
@@ -217,29 +217,25 @@ useMediaInputStreamDeviceInfo(
 
 Given MediaStreamConstraints, returns a MediaStream and two lists of device info for audio and video respectively. When the constraints change (either the object reference, the value of its `audio` or `video` properties, or their respective `deviceId` properties), then the stream will be replaced with a new MediaStream for that set of constraints.
 
-`useMediaInputStreamDeviceInfo` will request permission to use the available devices and update the stream and device lists when permission is granted.
+`useMediaStreamInputDevices` will request permission to use the available devices and update the stream and device lists when permission is granted.
 
 Setting `constraints` to `null` will stop the stream.
 
-#### useMediaInputDeviceInfo
+#### useMediaInputDevicesRequest
 
 ```typescript
-useMediaInputDeviceInfo(requestConstraints?: {
+useMediaInputDevicesRequest(constraints?: {
     audio: boolean;
     video: boolean;
 }): {
     audioDevices: MediaDeviceInfo[];
-    videoDevices: MediaDeviceInfo[];,
-    setConstraints: React.Dispatch<React.SetStateAction<{
-        audio: boolean;
-        video: boolean;
-    } | null>>;
+    videoDevices: MediaDeviceInfo[];
 }
 ```
 
 Checks whether permissions have already been given, and if not it opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
 
-Use `setConstraints` to re-request the devices.
+Changing the constraints will re-request the devices.
 
 #### useMediaPermissionsQuery
 
@@ -257,18 +253,6 @@ useMediaPermissionsQuery(): {
 - "prompt": Permission has not been requested
 - "unsupported": The browser doesn't support querying for permissions
 
-#### useMediaStream
-
-```typescript
-useMediaStream(
-    constraints: MediaStreamConstraints | null
-): MediaStream
-```
-
-`useMediaStream` can be used to initialize the media stream (or request permissions) for a set of constraints, separately.
-
-Setting `constraints` to `null` will stop the stream.
-
 #### useMediaInputDevices
 
 ```typescript
@@ -280,6 +264,18 @@ useMediaInputDevices(
 Given a flag for if permission has been granted, returns two lists of media devices: audio and video.
 
 Changing the `isPermissionGranted` flag will re-initialize the lists.
+
+#### useMediaStream
+
+```typescript
+useMediaStream(
+    constraints: MediaStreamConstraints | null
+): MediaStream
+```
+
+`useMediaStream` can be used to initialize the media stream (or request permissions) for a set of constraints, separately.
+
+Setting `constraints` to `null` will stop the stream.
 
 #### useBlobMediaRecorder
 

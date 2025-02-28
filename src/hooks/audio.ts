@@ -3,19 +3,14 @@ import { useInterval } from "./interval";
 
 let globalAudioContext: AudioContext | null = null;
 
-// Returns the global audio context and triggers render when it's ready
-export function useAudioContext() {
-  const [context, setContext] = useState<AudioContext | null>(null);
-
+export function initAudioContext(onInit: (context: AudioContext) => void) {
   // AudioContext requires user interaction to start
   // otherwise it will be suspended / give a warning
   function onUserInteraction() {
-    if (!context) {
-      if (!globalAudioContext) {
-        globalAudioContext = new AudioContext();
-      }
-      setContext(globalAudioContext);
+    if (!globalAudioContext) {
+      globalAudioContext = new AudioContext();
     }
+    onInit(globalAudioContext);
 
     // Remove event listeners after first interaction
     document.removeEventListener("click", onUserInteraction);
@@ -25,13 +20,25 @@ export function useAudioContext() {
     document.removeEventListener("pointerdown", onUserInteraction);
   }
 
-  useEffect(() => {
-    // Add event listeners
+  if (!globalAudioContext) {
     document.addEventListener("click", onUserInteraction);
     document.addEventListener("keydown", onUserInteraction);
     document.addEventListener("mousedown", onUserInteraction);
     document.addEventListener("touchstart", onUserInteraction);
     document.addEventListener("pointerdown", onUserInteraction);
+  } else {
+    onInit(globalAudioContext);
+  }
+}
+
+// Returns the global audio context and triggers render when it's ready
+export function useAudioContext() {
+  const [context, setContext] = useState<AudioContext | null>(null);
+
+  useEffect(() => {
+    initAudioContext((context) => {
+      setContext(context);
+    });
   }, []);
 
   return context;

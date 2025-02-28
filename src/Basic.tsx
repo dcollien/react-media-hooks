@@ -3,7 +3,7 @@ import "./App.css";
 
 import {
   useBlobMediaRecorder,
-  useMediaInputStreamDeviceInfo,
+  useMediaStreamInputDevices,
   useElapsedTime,
 } from "./hooks/media";
 import { downloadBlobs, useBlobUrls } from "./hooks/blob";
@@ -18,7 +18,7 @@ function App() {
   const constraints = {
     audio: deviceId ? { deviceId: { exact: deviceId } } : true,
   };
-  const { stream, audioDevices } = useMediaInputStreamDeviceInfo(constraints);
+  const { stream, audioDevices } = useMediaStreamInputDevices(constraints);
 
   // Recorder
   const [isRecording, setIsRecording] = useState(false);

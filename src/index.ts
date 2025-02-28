@@ -1,4 +1,5 @@
 export {
+  initAudioContext,
   useAudioContext,
   useAudioSource,
   useAnalyser,
@@ -18,8 +19,8 @@ export {
   useBlobMediaRecorder,
   useMediaInputDevices,
   useMediaStream,
-  useMediaInputStreamDeviceInfo,
-  useMediaInputDeviceInfo,
+  useMediaStreamInputDevices,
+  useMediaInputDevicesRequest,
   useMediaPermissionsQuery,
 } from "./hooks/media";
 

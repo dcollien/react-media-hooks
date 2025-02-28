@@ -374,7 +374,7 @@ export function useMediaStream(
   return streamRef.current;
 }
 
-export function useMediaInputStreamDeviceInfo(
+export function useMediaStreamInputDevices(
   constraints: MediaStreamConstraints | null
 ) {
   // A stream that combines tracks from the selected audio and video devices
@@ -434,23 +434,17 @@ export function useMediaPermissionsQuery() {
   return { microphone, camera };
 }
 
-export function useMediaInputDeviceInfo(
-  requestConstraints = {
+export function useMediaInputDevicesRequest(
+  constraints: {
+    audio: boolean;
+    video: boolean;
+  } = {
     audio: true,
     video: true,
   }
 ) {
-  // initialize the state with an empty array
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-
-  // Initialize the constraints with the requested constraints
-  const [constraints, setConstraints] = useState<{
-    audio: boolean;
-    video: boolean;
-  } | null>(requestConstraints);
-
   const { microphone, camera } = useMediaPermissionsQuery();
+  const [isInitCompleted, setInitCompleted] = useState(false);
 
   // Check if the permissions have been initialized yet
   const isPermissionsInitialized = microphone !== null && camera !== null;
@@ -464,9 +458,17 @@ export function useMediaInputDeviceInfo(
     (constraints?.video && !isVideoPermitted);
 
   // If we've checked permissions and a request is still required, request it
-  const stream = useMediaStream(
-    isPermissionsInitialized && isRequestRequired ? constraints : null
-  );
+  let streamConstraints: typeof constraints | null = constraints;
+
+  if (!isRequestRequired) {
+    streamConstraints = null; // Permission is granted, no need to request it
+  } else if (!isPermissionsInitialized) {
+    streamConstraints = null; // Permissions not initialized yet, wait for this before requesting permission
+  } else if (isInitCompleted) {
+    streamConstraints = null; // Already initialized, no need to request permission
+  }
+
+  const stream = useMediaStream(streamConstraints);
 
   // Check if the permission is granted by either means
   const isPermissionGranted = stream !== null || !isRequestRequired;
@@ -474,24 +476,30 @@ export function useMediaInputDeviceInfo(
   // A list of all available media devices, separated by kind
   // This will also set the stream if it hasn't been initialized yet
   // As it needs to request permission to use the devices
-  const [_audioList, _videoList] = useMediaInputDevices(isPermissionGranted);
+  const [audioDevices, videoDevices] =
+    useMediaInputDevices(isPermissionGranted);
 
-  // Stop access to the streams once we have saved the devices
+  // if initialized, set the init completed flag
   useEffect(() => {
-    if (!constraints) return;
+    const isAudioInitialized =
+      !constraints.audio || isValidMediaList(audioDevices);
+    const isVideoInitialized =
+      !constraints.video || isValidMediaList(videoDevices);
 
-    if (isValidMediaList(_audioList) || isValidMediaList(_videoList)) {
-      setAudioDevices(_audioList);
-      setVideoDevices(_videoList);
-      setConstraints(null);
+    const isInitialized = isAudioInitialized && isVideoInitialized;
+
+    if (isInitialized && stream) {
+      setInitCompleted(true);
     }
   }, [
-    _audioList,
-    _videoList,
-    _audioList.length,
-    _videoList.length,
-    constraints,
+    audioDevices,
+    videoDevices,
+    audioDevices.length,
+    videoDevices.length,
+    stream,
+    constraints.audio,
+    constraints.video,
   ]);
 
-  return { audioDevices, videoDevices, setConstraints };
+  return { audioDevices, videoDevices };
 }

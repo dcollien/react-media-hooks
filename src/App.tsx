@@ -5,7 +5,7 @@ import {
   useBlobMediaRecorder,
   useElapsedTime,
   useMediaStream,
-  useMediaInputDeviceInfo,
+  useMediaInputDevicesRequest,
 } from "./hooks/media";
 import { useBlobUrls } from "./hooks/blob";
 
@@ -24,7 +24,7 @@ function DeviceSelectionStep({
   onAudioDeviceIdChange: (deviceId: string | null) => void;
   onVideoDeviceIdChange: (deviceId: string | null) => void;
 }) {
-  const { audioDevices, videoDevices } = useMediaInputDeviceInfo();
+  const { audioDevices, videoDevices } = useMediaInputDevicesRequest();
 
   return (
     <div>
