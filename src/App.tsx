@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 
 import {
-  useBlobMediaRecorder,
+  useMediaBlobRecorder,
   useElapsedTime,
   useMediaStream,
   useMediaInputDevicesRequest,
@@ -54,7 +54,7 @@ function AudioRecorderStep({
     : null;
 
   const stream = useMediaStream(constraints);
-  const result = useBlobMediaRecorder(stream, isRecording);
+  const result = useMediaBlobRecorder(stream, isRecording);
   const timeElapsed = useElapsedTime(result, isRecording);
   const blobUrls = useBlobUrls(result.blobs);
 
@@ -98,7 +98,7 @@ function VideoRecorderStep({
       : null;
 
   const stream = useMediaStream(constraints);
-  const result = useBlobMediaRecorder(stream, isRecording);
+  const result = useMediaBlobRecorder(stream, isRecording);
   const timeElapsed = useElapsedTime(result, isRecording);
   const blobUrls = useBlobUrls(result.blobs);
 

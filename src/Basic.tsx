@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 
 import {
-  useBlobMediaRecorder,
+  useMediaBlobRecorder,
   useMediaStreamInputDevices,
   useElapsedTime,
 } from "./hooks/media";
@@ -22,7 +22,7 @@ function App() {
 
   // Recorder
   const [isRecording, setIsRecording] = useState(false);
-  const result = useBlobMediaRecorder(stream, isRecording);
+  const result = useMediaBlobRecorder(stream, isRecording);
 
   // Elapsed time
   const timeElapsed = useElapsedTime(result, isRecording);

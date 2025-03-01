@@ -155,7 +155,7 @@ export function useMediaRecorder(
   }, [stream, isRecording]);
 }
 
-export function useBlobMediaRecorder(
+export function useMediaBlobRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
   options?: UseMediaRecorderOptions

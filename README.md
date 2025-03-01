@@ -22,11 +22,11 @@ import { useCallback, useState } from "react";
 import {
   useAudioContext,
   useAudioLevel,
-  useAudioSource,
+  useAudioStreamSource,
 } from "react-media-hooks/use-audio";
 
 import {
-  useBlobMediaRecorder,
+  useMediaBlobRecorder,
   useElapsedTime,
   useMediaStream,
 } from "react-media-hooks/use-media";
@@ -54,7 +54,7 @@ export function AudioRecorder({
   const stream = useMediaStream(constraints);
 
   // Create the media recorder from the stream
-  const result = useBlobMediaRecorder(stream, isRecording);
+  const result = useMediaBlobRecorder(stream, isRecording);
 
   // Calculate the time elapsed from the result
   const timeElapsed = useElapsedTime(result, isRecording);
@@ -62,16 +62,12 @@ export function AudioRecorder({
   // Create the blob urls from the blobs in the result
   const blobUrls = useBlobUrls(result.blobs);
 
-  // Retrieve the audio context
-  const audioContext = useAudioContext();
-
   // Create the audio source on the audio context, from the stream
-  const audioSource = useAudioSource(audioContext, stream);
+  const audioSource = useAudioStreamSource(stream);
 
   // Update the audio level (between 0 and 1) from the audio source
   // 60 times per second
   const { level, timestamp } = useAudioLevel(
-    audioContext,
     audioSource,
     1000 / 60 // update 60 times per second
   );
@@ -153,47 +149,75 @@ Browser vendors decided that Web Audio contexts should not be allowed to automat
 
 The context is stored as component state so component renders will be triggered when the context initializes and changes from `null` to the initialized `AudioContext` object.
 
-#### useAudioSource
+#### useAudioStreamSource
 
 ```typescript
-useAudioSource(
-    audioContext: AudioContext | null,
+useAudioStreamSource(
     stream: MediaStream | null
 ): MediaStreamAudioSourceNode`
 ```
 
-Given an AudioContext and a MediaStream, creates a MediaStreamSourceNode using `audioContext.createMediaStreamSource(stream)` when both `audioContext` and `stream` become initialized.
+Given a MediaStream, creates a MediaStreamSourceNode using `audioContext.createMediaStreamSource(stream)` when both `audioContext` and `stream` become initialized.
 
 The returned source node is stored as component state so component renders will be triggered when the audio source node becomes available.
 
-#### useAnalyser
+#### useAudioAnalyser
 
 ```typescript
-useAnalyser(
-  audioContext: AudioContext | null,
-  source: MediaStreamAudioSourceNode | null,
-  fftSize = 256
+useAudioAnalyser(
+    source: MediaStreamAudioSourceNode | null,
+    fftSize = 256
 ): AnalyserNode | null
 ```
 
-Given an AudioContext and MediaStreamAudioSourceNode, returns an AnalyserNode. When the `source` changes, the old source will disconnect the analyser (if it exists), and the new source will be connected to the analyser.
+Given a MediaStreamAudioSourceNode, returns an AnalyserNode. When the `source` changes, the old source will disconnect the analyser (if it exists), and the new source will be connected to the analyser.
 
 #### useAudioLevel
 
 ```typescript
 useAudioLevel(
-  audioContext: AudioContext | null,
-  source: MediaStreamAudioSourceNode | null,
-  updateInterval: number | null = 1000 / 60
+    source: MediaStreamAudioSourceNode | null,
+    updateInterval: number | null = 1000 / 60
 ): {
     level: number,
     timestamp: number
 }
 ```
 
-Given an AudioContext and MediaStreamAudioSourceNode, returns the current volume level and the timestamp that the volume was last sampled (uses `Date.now()`).
+Given a MediaStreamAudioSourceNode, returns the current volume level and the timestamp that the volume was last sampled (uses `Date.now()`).
 
 The `updateInterval` controls how frequently the volume level is sampled, and can be set to `null` to pause updates.
+
+#### useAudioDataSource
+
+```typescript
+useAudioDataSource(
+    data: ArrayBuffer | AudioBuffer | Blob | null,
+    detune?: number,
+    loop?: boolean,
+    loopStart?: number,
+    loopEnd?: number,
+    playbackRate?: number
+): AudioBufferSourceNode | null
+```
+
+Returns a AudioBufferSourceNode (when one has initialized) from given audio data: either ArrayBuffer, AudioBuffer, or Blob.
+
+#### useAudioDataPlayback
+
+````typescript
+useAudioDataPlayback(
+    data: ArrayBuffer | AudioBuffer | Blob | null,
+    detune?: number,
+    loop?: boolean,
+    loopStart?: number,
+    loopEnd?: number,
+    playbackRate?: number
+): (when?: number, offset?: number, duration?: number) => Promise<void>
+```
+
+Given audio data (ArrayBuffer, AudioBuffer, or Blob), returns a `start` function. When called this function will start playing the audio.
+
 
 ### Media
 
@@ -201,7 +225,7 @@ Hooks for dealing with MediaDevices
 
 ```typescript
 import {...} from 'react-media-hooks/use-media`
-```
+````
 
 #### useMediaStreamInputDevices
 
@@ -277,16 +301,16 @@ useMediaStream(
 
 Setting `constraints` to `null` will stop the stream.
 
-#### useBlobMediaRecorder
+#### useMediaBlobRecorder
 
 ```typescript
-useBlobMediaRecorder(
-  stream: MediaStream | null,
-  isRecording: boolean,
-  options?: MediaRecorderOptions
+useMediaBlobRecorder(
+    stream: MediaStream | null,
+    isRecording: boolean,
+    options?: MediaRecorderOptions
 ): {
-  startTime: number | null;
-  blobs: Blob[];
+    startTime: number | null;
+    blobs: Blob[];
 } as RecordedMediaResult
 ```
 
@@ -315,13 +339,13 @@ Can be used as a shortcut to retrieve the elapsed time since a result was create
 
 ```typescript
 useMediaRecorder(
-  stream: MediaStream | null,
-  isRecording: boolean,
-  onDataAvailable?: (event: BlobEvent) => void,
-  onStart?: (event: MediaRecorderEvent) => void,
-  onResume?: (event: MediaRecorderEvent) => void,
-  onStop?: (event: MediaRecorderEvent) => void,
-  options?: UseMediaRecorderOptions
+    stream: MediaStream | null,
+    isRecording: boolean,
+    onDataAvailable?: (event: BlobEvent) => void,
+    onStart?: (event: MediaRecorderEvent) => void,
+    onResume?: (event: MediaRecorderEvent) => void,
+    onStop?: (event: MediaRecorderEvent) => void,
+    options?: UseMediaRecorderOptions
 ): void
 ```
 
@@ -331,7 +355,7 @@ Start recording on a stream. Toggle `isRecording` to start/stop recording. If a 
 
 ```typescript
 const blob = new Blob([data0, data1, ...], {
-  type: event.recorder.mimeType,
+    type: event.recorder.mimeType,
 });
 ```
 

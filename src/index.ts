@@ -1,8 +1,8 @@
 export {
   initAudioContext,
   useAudioContext,
-  useAudioSource,
-  useAnalyser,
+  useAudioStreamSource,
+  useAudioAnalyser as useAnalyser,
   useAudioLevel,
 } from "./hooks/audio";
 
@@ -16,7 +16,7 @@ export type {
 export {
   useElapsedTime,
   useMediaRecorder,
-  useBlobMediaRecorder,
+  useMediaBlobRecorder,
   useMediaInputDevices,
   useMediaStream,
   useMediaStreamInputDevices,

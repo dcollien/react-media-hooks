@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAudioContext, useAudioLevel, useAudioSource } from "../hooks/audio";
+import { useAudioLevel, useAudioStreamSource } from "../hooks/audio";
 
 const NUM_BARS = 60;
 
@@ -48,14 +48,11 @@ export function AudioScroller({
   audioStream: MediaStream | null;
   disabled: boolean;
 }) {
-  // Global audio context
-  const audioContext = useAudioContext();
-
   // Create the audio source on the audio context, from the stream
-  const audioSource = useAudioSource(audioContext, audioStream);
+  const audioSource = useAudioStreamSource(audioStream);
 
   // audio level is between 0 and 1
-  const { level, timestamp } = useAudioLevel(audioContext, audioSource);
+  const { level, timestamp } = useAudioLevel(audioSource);
 
   const bars = useBars(level, timestamp, disabled);
 
