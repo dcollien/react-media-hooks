@@ -195,6 +195,8 @@ export function useAudioDataSource(
   const [source, setSource] = useState<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
     if (!data || audioContext === null) return;
 
     createSource(
@@ -205,7 +207,15 @@ export function useAudioDataSource(
       loopStart,
       loopEnd,
       playbackRate
-    ).then(setSource);
+    ).then((newSource) => {
+      if (!isCancelled) {
+        setSource(newSource);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [data, audioContext, detune, loop, loopStart, loopEnd, playbackRate]);
 
   return source;

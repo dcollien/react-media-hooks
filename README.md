@@ -205,7 +205,7 @@ Returns a AudioBufferSourceNode (when one has initialized) from given audio data
 
 #### useAudioDataPlayback
 
-````typescript
+```typescript
 useAudioDataPlayback(
     data: ArrayBuffer | AudioBuffer | Blob | null,
     detune?: number,
@@ -218,14 +218,13 @@ useAudioDataPlayback(
 
 Given audio data (ArrayBuffer, AudioBuffer, or Blob), returns a `start` function. When called this function will start playing the audio.
 
-
 ### Media
 
 Hooks for dealing with MediaDevices
 
 ```typescript
 import {...} from 'react-media-hooks/use-media`
-````
+```
 
 #### useMediaStreamInputDevices
 

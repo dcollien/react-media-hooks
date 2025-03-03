@@ -311,6 +311,8 @@ export function useMediaStream(
   constraints: MediaStreamConstraints | null
 ): MediaStream | null {
   const { audioIdHash, videoIdHash } = hashDeviceIds(constraints);
+
+  // Don't store the stream in state, so we can garbage collect it
   const streamRef = useRef<MediaStream | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -409,14 +411,18 @@ export function useMediaPermissionsQuery() {
   );
 
   useEffect(() => {
+    let isCancelled = false;
+
     navigator.permissions
       .query({
         name: "microphone" as PermissionName,
       })
       .then((micPerm) => {
+        if (isCancelled) return;
         setMicrophone(micPerm.state);
       })
       .catch(() => {
+        if (isCancelled) return;
         setMicrophone("unsupported");
       });
     navigator.permissions
@@ -424,11 +430,17 @@ export function useMediaPermissionsQuery() {
         name: "camera" as PermissionName,
       })
       .then((cameraPerm) => {
+        if (isCancelled) return;
         setCamera(cameraPerm.state);
       })
       .catch(() => {
+        if (isCancelled) return;
         setCamera("unsupported");
       });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   return { microphone, camera };
