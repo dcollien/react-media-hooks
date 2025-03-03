@@ -240,7 +240,7 @@ useMediaStreamInputDevices(
 
 Given MediaStreamConstraints, returns a MediaStream and two lists of device info for audio and video respectively. When the constraints change (either the object reference, the value of its `audio` or `video` properties, or their respective `deviceId` properties), then the stream will be replaced with a new MediaStream for that set of constraints.
 
-`useMediaStreamInputDevices` will request permission to use the available devices and update the stream and device lists when permission is granted.
+`useMediaStreamInputDevices` will request permission to use the available devices and update the stream and device lists when permission is granted. If a new device is connected, the lists will update.
 
 Setting `constraints` to `null` will stop the stream.
 
@@ -258,7 +258,7 @@ useMediaInputDevicesRequest(constraints?: {
 
 Checks whether permissions have already been given, and if not it opens a stream only momentarily, enough to trigger a permissions request and enumerate audio and video devices. The stream is then closed.
 
-Changing the constraints will re-request the devices.
+Changing the constraints will re-request the devices. If a new device is connected, the lists will update.
 
 #### useMediaPermissionsQuery
 

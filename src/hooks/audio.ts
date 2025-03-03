@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInterval } from "./interval";
 
 let globalAudioContext: AudioContext = new AudioContext();
@@ -55,17 +55,11 @@ export function useAudioContext() {
 export function useAudioStreamSource(stream: MediaStream | null) {
   const audioContext = useAudioContext();
 
-  const [streamSource, setStreamSource] =
-    useState<MediaStreamAudioSourceNode | null>(null);
+  return useMemo(() => {
+    if (!audioContext || !stream) return null;
 
-  useEffect(() => {
-    if (!audioContext || !stream) return;
-
-    const source = audioContext.createMediaStreamSource(stream);
-    setStreamSource(source);
+    return audioContext.createMediaStreamSource(stream);
   }, [audioContext, stream]);
-
-  return streamSource;
 }
 
 // Returns the connected analyser node from the audio context and source

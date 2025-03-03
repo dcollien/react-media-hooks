@@ -228,30 +228,62 @@ export function useMediaBlobRecorder(
 }
 
 export function useMediaInputDevices(isPermissionGranted: boolean) {
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [devices, setDevices] = useState<{
+    audio: MediaDeviceInfo[];
+    video: MediaDeviceInfo[];
+  }>({
+    audio: [],
+    video: [],
+  });
 
-  const init = async () => {
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
+
+  const enumerate = async () => {
     try {
       // Get a list of all media devices
       const devices = await navigator.mediaDevices.enumerateDevices();
 
-      // Set the devices list
-      setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
-      setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
-
-      // Get the default device ID
+      return {
+        audio: devices.filter((d) => d.kind === "audioinput"),
+        video: devices.filter((d) => d.kind === "videoinput"),
+      };
     } catch (error) {
       console.error("Error getting device", error);
     }
+
+    return {
+      audio: [],
+      video: [],
+    };
   };
 
   // Re-initialize the devices when permission is requested
   useEffect(() => {
-    init();
-  }, [isPermissionGranted]);
+    let isCancelled = false;
+    enumerate().then((devices) => {
+      if (!isCancelled) {
+        setDevices(devices);
+      }
+    });
 
-  return [audioDevices, videoDevices] as const;
+    return () => {
+      isCancelled = true;
+    };
+  }, [isPermissionGranted, lastUpdate]);
+
+  useEffect(() => {
+    const changeHandler = () => {
+      setLastUpdate(Date.now());
+    };
+
+    navigator.mediaDevices.addEventListener("devicechange", changeHandler);
+
+    return () => {
+      navigator.mediaDevices.removeEventListener("devicechange", changeHandler);
+    };
+  }, []);
+
+  return [devices.audio, devices.video] as const;
 }
 
 const stopStream = (stream: MediaStream | null) => {
@@ -318,57 +350,42 @@ export function useMediaStream(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, forceUpdate] = useState({});
 
-  const lastInitTimestampRef = useRef<number | null>(null);
-
-  const closeCurrentStream = () => {
-    lastInitTimestampRef.current = null;
-
-    if (streamRef.current) {
-      stopStream(streamRef.current);
-      streamRef.current = null;
-    }
-  };
-
   useEffect(() => {
+    let isCancelled = false;
+
     if (constraints) {
       // Constraints given, start a new stream
-
-      // Store the timestamp of the current initialization
-      const initTimestamp = Date.now();
-      lastInitTimestampRef.current = initTimestamp;
 
       // Request the user media stream
       navigator.mediaDevices
         .getUserMedia(constraints)
         .then((stream) => {
-          // When the stream is ready
-          if (lastInitTimestampRef.current === initTimestamp) {
-            // This is the most recent stream
-
-            if (streamRef.current) {
-              // Stop the previous stream
-              stopStream(streamRef.current);
-            }
-
+          if (isCancelled) {
+            // Invalidated before the stream was initialized
+            stopStream(stream);
+          } else {
             // Store the stream
             streamRef.current = stream;
-          } else {
-            // Ignore this stream because it is not the most recent
-            stopStream(stream);
-          }
 
-          // Force update to re-render the component when the stream changes
-          forceUpdate({});
+            // Force update to re-render the component when the stream changes
+            // as components may need to re-render when the stream changes
+            forceUpdate({});
+          }
         })
         .catch((error) => {
           console.error("Error getting user media from device", error);
         });
-    } else {
-      closeCurrentStream();
+    } else if (streamRef.current) {
+      stopStream(streamRef.current);
+      streamRef.current = null;
+
+      // No render update required, this is a side effect
     }
 
     return () => {
-      closeCurrentStream();
+      isCancelled = true;
+      stopStream(streamRef.current);
+      streamRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioIdHash, videoIdHash]);

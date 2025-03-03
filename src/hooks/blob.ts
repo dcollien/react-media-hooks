@@ -42,6 +42,7 @@ export function useBlobUrls(blobs: Blob[]) {
     setUrls(blobs.map((blob) => URL.createObjectURL(blob)));
 
     return () => {
+      // Needs to be an effect so it can clean up
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
