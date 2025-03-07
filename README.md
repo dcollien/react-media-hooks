@@ -168,7 +168,13 @@ import { useAudioContext } from "react-media-hooks/use-audio";
 import { AudioContextProvider } from "react-media-hooks/audio-context";
 
 function SubComponent() {
-  const context = useAudioContext(); // will use the context provider's context
+  const context = useAudioContext(); // will use the context provider's AudioContext
+  const deviceId = ...;
+
+  useEffect(() => {
+    // Change only the context provider's sink
+    context.setSinkId(deviceId);
+  }, [deviceId]);
 
   return <></>;
 }
