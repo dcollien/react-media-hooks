@@ -396,7 +396,7 @@ Setting `constraints` to `null` will stop the stream.
 
 #### useMediaStreamWithEvents
 
-````typescript
+```typescript
 useMediaStreamWithEvents(
     constraints: MediaStreamConstraints | null,
     onAddTrack?: (track: MediaStreamTrack) => void,
@@ -425,13 +425,14 @@ Similar to `useMediaStream` but with more options. Calling `reload` will re-init
 Calling `stopAudio` will stop all audio tracks, `stopVideo` will stop all video tracks, `stopTrack` to specify a track ID to stop.
 
 Event handlers:
- - onAddTrack: when a track is added to the stream
- - onRemoveTrack: when a track is removed from the stram
- - onEnded: when all tracks are in `readyState = "ended"`
- - onAudioEnded: when all audio tracks are in `readyState = "ended"`
- - onVideoEnded: when all video tracks are in `readyState = "ended"`
- - onTrackMuted: when a track becomes muted
- - onTrackUnmuted: when a track becomes unmuted
+
+- onAddTrack: when a track is added to the stream
+- onRemoveTrack: when a track is removed from the stram
+- onEnded: when all tracks are in `readyState = "ended"`
+- onAudioEnded: when all audio tracks are in `readyState = "ended"`
+- onVideoEnded: when all video tracks are in `readyState = "ended"`
+- onTrackMuted: when a track becomes muted
+- onTrackUnmuted: when a track becomes unmuted
 
 #### useMediaBlobRecorder
 
@@ -444,7 +445,7 @@ useMediaBlobRecorder(
     startTime: number | null;
     blobs: Blob[];
 } as RecordedMediaResult
-````
+```
 
 Start recording on a stream. Toggle `isRecording` to start/stop recording. Starting a new recording will re-initialize the `blobs` array. Stopping recording will populate the `blobs` array with new data.
 
