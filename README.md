@@ -141,13 +141,62 @@ import {...} from 'react-media-hooks/use-audio`
 useAudioContext(): AudioContext | null
 ```
 
-A global audio context is used. As per MDN:
+A global audio context is used by default. As per MDN:
 
 > It's recommended to create one AudioContext and reuse it instead of initializing a new one each time, and it's OK to use a single AudioContext for several different audio sources and pipeline concurrently.
 
 Browser vendors decided that Web Audio contexts should not be allowed to automatically play audio; they should instead be started by a user. As such, the `useAudioContext` hook waits for any user interaction before initializing the `AudioContext` so that the context does not get created in suspended mode.
 
 The context is stored as component state so component renders will be triggered when the context initializes and changes from `null` to the initialized `AudioContext` object.
+
+e.g.
+
+```tsx
+import { useAudioContext } from "react-media-hooks/use-audio";
+
+function Component() {
+  const context = useAudioContext(); // will use the global audio context
+
+  return <></>;
+}
+```
+
+Optionally, a React Context Provider can be used to create separate audio contexts. e.g.
+
+```tsx
+import { useAudioContext } from "react-media-hooks/use-audio";
+import { AudioContextProvider } from "react-media-hooks/audio-context";
+
+function SubComponent() {
+  const context = useAudioContext(); // will use the context provider's context
+
+  return <></>;
+}
+
+function Component() {
+  // Create a new AudioContext and initialize it on user interaction
+  return (
+    <AudioContextProvider>
+      <SubComponent />
+    </AudioContextProvider>
+  );
+}
+```
+
+Optionally, your own audio context can be given:
+
+```tsx
+function Component() {
+  // Create a new AudioContext and initialize it on user interaction
+  return (
+    <AudioContextProvider audioContext={myAudioContext}>
+      <SubComponent />
+    </AudioContextProvider>
+  );
+}
+```
+
+If the given context is suspended, it will be automatically woken up on next user interaction.
 
 #### useAudioStreamSource
 
@@ -276,6 +325,20 @@ useMediaPermissionsQuery(): {
 - "prompt": Permission has not been requested
 - "unsupported": The browser doesn't support querying for permissions
 
+#### useMediaDevices
+
+```typescript
+useMediaDevices(isPermissionGranted: boolean): {
+    readonly audioInput: MediaDeviceInfo[];
+    readonly videoInput: MediaDeviceInfo[];
+    readonly audioOutput: MediaDeviceInfo[];
+}
+```
+
+Given a flag for if permission has been granted, returns three lists of media devices: audio inputs, video inputs, and audio outputs.
+
+Changing the `isPermissionGranted` flag will re-initialize the lists.
+
 #### useMediaInputDevices
 
 ```typescript
@@ -284,7 +347,7 @@ useMediaInputDevices(
 ): readonly [MediaDeviceInfo[], MediaDeviceInfo[]]
 ```
 
-Given a flag for if permission has been granted, returns two lists of media devices: audio and video.
+Given a flag for if permission has been granted, returns two lists of media input devices: audio and video (in order).
 
 Changing the `isPermissionGranted` flag will re-initialize the lists.
 
