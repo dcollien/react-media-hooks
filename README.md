@@ -285,11 +285,25 @@ import {...} from 'react-media-hooks/use-media`
 
 ```typescript
 useMediaStreamInputDevices(
-    constraints: MediaStreamConstraints | null
+    constraints: MediaStreamConstraints | null.
+    onAddTrack?: (track: MediaStreamTrack) => void,
+    onRemoveTrack?: (track: MediaStreamTrack) => void,
+    onEnded?: () => void,
+    onAudioEnded?: () => void,
+    onVideoEnded?: () => void,
+    onTrackMuted?: (
+      track: MediaStreamTrack,
+      mutedTracks: MediaStreamTrack[]
+    ) => void,
+    onTrackUnmuted?: (
+      track: MediaStreamTrack,
+      mutedTracks: MediaStreamTrack[]
+    ) => void
 ): {
-    stream: MediaStream | null,
-    audioDevices: MediaDeviceInfo[],
-    videoDevices: MediaDeviceInfo[]
+    stream: MediaStream | null;
+    audioDevices: MediaDeviceInfo[];
+    videoDevices: MediaDeviceInfo[];
+    reload: () => void;
 }
 ```
 
@@ -298,6 +312,10 @@ Given MediaStreamConstraints, returns a MediaStream and two lists of device info
 `useMediaStreamInputDevices` will request permission to use the available devices and update the stream and device lists when permission is granted. If a new device is connected, the lists will update.
 
 Setting `constraints` to `null` will stop the stream.
+
+Calling `reload` will re-initialize the stream and device lists (same as setting constraints to `null` and back to its original value).
+
+The same event handlers can be given as `useMediaStreamWithEvents`.
 
 #### useMediaInputDevicesRequest
 
@@ -324,6 +342,8 @@ useMediaPermissionsQuery(): {
 }
 ```
 
+Queries the permissions available.
+
 `microphone` and `camera` will switch from `null` to one of:
 
 - "granted": Permission has already been given
@@ -334,16 +354,19 @@ useMediaPermissionsQuery(): {
 #### useMediaDevices
 
 ```typescript
-useMediaDevices(isPermissionGranted: boolean): {
+useMediaDevices(isPermissionGranted?: boolean): {
+    readonly reload: () => void;
     readonly audioInput: MediaDeviceInfo[];
     readonly videoInput: MediaDeviceInfo[];
     readonly audioOutput: MediaDeviceInfo[];
 }
 ```
 
-Given a flag for if permission has been granted, returns three lists of media devices: audio inputs, video inputs, and audio outputs.
+Given a flag for if permission has been granted, returns three lists of media devices: audio inputs, video inputs, and audio outputs. Does not request permissions itself.
 
-Changing the `isPermissionGranted` flag will re-initialize the lists.
+Changing the `isPermissionGranted` flag will re-initialize the lists, as will calling `reload()`;
+
+New lists will be automatically set when a new device is made available.
 
 #### useMediaInputDevices
 
@@ -353,9 +376,11 @@ useMediaInputDevices(
 ): readonly [MediaDeviceInfo[], MediaDeviceInfo[]]
 ```
 
-Given a flag for if permission has been granted, returns two lists of media input devices: audio and video (in order).
+Given a flag for if permission has been granted, returns two lists of media input devices: audio and video (in order). Does not request permissions itself.
 
 Changing the `isPermissionGranted` flag will re-initialize the lists.
+
+New lists will be automatically set when a new device is made available.
 
 #### useMediaStream
 
@@ -369,6 +394,45 @@ useMediaStream(
 
 Setting `constraints` to `null` will stop the stream.
 
+#### useMediaStreamWithEvents
+
+````typescript
+useMediaStreamWithEvents(
+    constraints: MediaStreamConstraints | null,
+    onAddTrack?: (track: MediaStreamTrack) => void,
+    onRemoveTrack?: (track: MediaStreamTrack) => void,
+    onEnded?: () => void,
+    onAudioEnded?: () => void,
+    onVideoEnded?: () => void,
+    onTrackMuted?: (
+      track: MediaStreamTrack,
+      mutedTracks: MediaStreamTrack[]
+    ) => void,
+    onTrackUnmuted?: (
+      track: MediaStreamTrack,
+      mutedTracks: MediaStreamTrack[]
+    ) => void
+): {
+  stream: MediaStream | null;
+  reload: () => void;
+  stopAudio: () => void;
+  stopVideo: () => void;
+  stopTrack: (trackId: string) => void;
+}
+```
+
+Similar to `useMediaStream` but with more options. Calling `reload` will re-initialize the stream.
+Calling `stopAudio` will stop all audio tracks, `stopVideo` will stop all video tracks, `stopTrack` to specify a track ID to stop.
+
+Event handlers:
+ - onAddTrack: when a track is added to the stream
+ - onRemoveTrack: when a track is removed from the stram
+ - onEnded: when all tracks are in `readyState = "ended"`
+ - onAudioEnded: when all audio tracks are in `readyState = "ended"`
+ - onVideoEnded: when all video tracks are in `readyState = "ended"`
+ - onTrackMuted: when a track becomes muted
+ - onTrackUnmuted: when a track becomes unmuted
+
 #### useMediaBlobRecorder
 
 ```typescript
@@ -380,7 +444,7 @@ useMediaBlobRecorder(
     startTime: number | null;
     blobs: Blob[];
 } as RecordedMediaResult
-```
+````
 
 Start recording on a stream. Toggle `isRecording` to start/stop recording. Starting a new recording will re-initialize the `blobs` array. Stopping recording will populate the `blobs` array with new data.
 

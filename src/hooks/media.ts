@@ -234,7 +234,7 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
   return [devices.audioInput, devices.videoInput] as const;
 }
 
-export function useMediaDevices(isPermissionGranted: boolean) {
+export function useMediaDevices(isPermissionGranted = false) {
   const [devices, setDevices] = useState<{
     audioInput: MediaDeviceInfo[];
     videoInput: MediaDeviceInfo[];
@@ -281,9 +281,13 @@ export function useMediaDevices(isPermissionGranted: boolean) {
     [isPermissionGranted, lastUpdate]
   );
 
+  const reload = () => {
+    setLastUpdate(Date.now());
+  };
+
   useEffect(() => {
     const changeHandler = () => {
-      setLastUpdate(Date.now());
+      reload();
     };
 
     navigator.mediaDevices.addEventListener("devicechange", changeHandler);
@@ -293,7 +297,7 @@ export function useMediaDevices(isPermissionGranted: boolean) {
     };
   }, []);
 
-  return { ...devices } as const;
+  return { ...devices, reload } as const;
 }
 
 const stopStream = (stream: MediaStream | null) => {
@@ -349,10 +353,42 @@ const hashDeviceIds = (constraints: MediaStreamConstraints | null) => {
   } as const;
 };
 
-export function useMediaStream(
-  constraints: MediaStreamConstraints | null
-): MediaStream | null {
+export function useMediaStream(constraints: MediaStreamConstraints | null) {
+  const { stream } = useMediaStreamWithEvents(constraints);
+
+  return stream;
+}
+
+function isAudioEnded(stream: MediaStream) {
+  return stream.getAudioTracks().every((track) => track.readyState === "ended");
+}
+
+function isVideoEnded(stream: MediaStream) {
+  return stream.getVideoTracks().every((track) => track.readyState === "ended");
+}
+
+function isAllTracksEnded(stream: MediaStream) {
+  return stream.getTracks().every((track) => track.readyState === "ended");
+}
+
+export function useMediaStreamWithEvents(
+  constraints: MediaStreamConstraints | null,
+  onAddTrack?: (track: MediaStreamTrack) => void,
+  onRemoveTrack?: (track: MediaStreamTrack) => void,
+  onEnded?: () => void,
+  onAudioEnded?: () => void,
+  onVideoEnded?: () => void,
+  onTrackMuted?: (
+    track: MediaStreamTrack,
+    mutedTracks: MediaStreamTrack[]
+  ) => void,
+  onTrackUnmuted?: (
+    track: MediaStreamTrack,
+    mutedTracks: MediaStreamTrack[]
+  ) => void
+) {
   const { audioIdHash, videoIdHash } = hashDeviceIds(constraints);
+  const [updateTriggeredAt, setUpdateTriggeredAt] = useState(Date.now());
 
   // Don't store the stream in state, so we can garbage collect it
   const streamRef = useRef<MediaStream | null>(null);
@@ -374,6 +410,64 @@ export function useMediaStream(
             // Invalidated before the stream was initialized
             stopStream(stream);
           } else {
+            stream.addEventListener("addtrack", (event) => {
+              if (onAddTrack) {
+                onAddTrack(event.track);
+              }
+            });
+
+            stream.addEventListener("removetrack", (event) => {
+              if (onRemoveTrack) {
+                onRemoveTrack(event.track);
+              }
+            });
+
+            if (
+              onAudioEnded ||
+              onVideoEnded ||
+              onEnded ||
+              onTrackMuted ||
+              onTrackUnmuted
+            ) {
+              stream.getTracks().forEach((track) => {
+                if (onAudioEnded || onVideoEnded || onEnded) {
+                  track.addEventListener("ended", () => {
+                    if (onAudioEnded && isAudioEnded(stream)) {
+                      onAudioEnded();
+                    }
+
+                    if (onVideoEnded && isVideoEnded(stream)) {
+                      onVideoEnded();
+                    }
+
+                    if (onEnded && isAllTracksEnded(stream)) {
+                      onEnded();
+                    }
+                  });
+                }
+
+                if (onTrackMuted || onTrackUnmuted) {
+                  track.addEventListener("mute", () => {
+                    if (onTrackMuted) {
+                      const mutedTracks = stream
+                        .getTracks()
+                        .filter((t) => t.muted);
+                      onTrackMuted(track, mutedTracks);
+                    }
+                  });
+
+                  track.addEventListener("unmute", () => {
+                    if (onTrackUnmuted) {
+                      const mutedTracks = stream
+                        .getTracks()
+                        .filter((t) => t.muted);
+                      onTrackUnmuted(track, mutedTracks);
+                    }
+                  });
+                }
+              });
+            }
+
             // Store the stream
             streamRef.current = stream;
 
@@ -398,30 +492,86 @@ export function useMediaStream(
       streamRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioIdHash, videoIdHash]);
+  }, [audioIdHash, videoIdHash, updateTriggeredAt]);
 
-  return streamRef.current;
+  return {
+    stream: streamRef.current,
+    reload: () => {
+      setUpdateTriggeredAt(Date.now());
+    },
+    stopAudio: () => {
+      if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+    },
+    stopVideo: () => {
+      if (streamRef.current) {
+        streamRef.current.getVideoTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+    },
+    stopTrack: (trackId: string) => {
+      if (streamRef.current) {
+        const track = streamRef.current.getTrackById(trackId);
+        if (track) {
+          track.stop();
+        }
+      }
+    },
+  };
 }
 
 export function useMediaStreamInputDevices(
-  constraints: MediaStreamConstraints | null
+  constraints: MediaStreamConstraints | null,
+  onAddTrack?: (track: MediaStreamTrack) => void,
+  onRemoveTrack?: (track: MediaStreamTrack) => void,
+  onEnded?: () => void,
+  onAudioEnded?: () => void,
+  onVideoEnded?: () => void,
+  onTrackMuted?: (
+    track: MediaStreamTrack,
+    mutedTracks: MediaStreamTrack[]
+  ) => void,
+  onTrackUnmuted?: (
+    track: MediaStreamTrack,
+    mutedTracks: MediaStreamTrack[]
+  ) => void
 ) {
   // A stream that combines tracks from the selected audio and video devices
   // This also requests permission to use the devices
-  const stream = useMediaStream(constraints);
+  const { stream, reload: reloadStream } = useMediaStreamWithEvents(
+    constraints,
+    onAddTrack,
+    onRemoveTrack,
+    onEnded,
+    onAudioEnded,
+    onVideoEnded,
+    onTrackMuted,
+    onTrackUnmuted
+  );
 
   const isPermissionGranted = stream !== null;
 
   // A list of all available media devices, separated by kind
   // This will also set the stream if it hasn't been initialized yet
   // As it needs to request permission to use the devices
-  const [audioDevices, videoDevices] =
-    useMediaInputDevices(isPermissionGranted);
+  const {
+    audioInput,
+    videoInput,
+    reload: reloadDevices,
+  } = useMediaDevices(isPermissionGranted);
 
   return {
     stream,
-    audioDevices,
-    videoDevices,
+    audioInput,
+    videoInput,
+    reload: () => {
+      reloadStream();
+      reloadDevices();
+    },
   };
 }
 
