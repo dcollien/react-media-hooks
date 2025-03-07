@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/Basic.tsx","./src/index.ts","./src/main.tsx","./src/vite-env.d.ts","./src/components/AudioRecorder.tsx","./src/components/AudioScroller.tsx","./src/components/DeviceSelector.tsx","./src/components/VideoRecorder.tsx","./src/hooks/audio.ts","./src/hooks/blob.ts","./src/hooks/interval.ts","./src/hooks/media.ts"],"version":"5.7.3"}
