@@ -566,8 +566,8 @@ export function useMediaStreamInputDevices(
 
   return {
     stream,
-    audioInput,
-    videoInput,
+    audioDevices: audioInput,
+    videoDevices: videoInput,
     reload: () => {
       reloadStream();
       reloadDevices();
