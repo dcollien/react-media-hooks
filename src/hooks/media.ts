@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useInterval } from "./interval";
+import useAsyncEffect from "./async";
 
 // The result of a recording
 export interface RecordedMediaResult {
@@ -228,48 +229,57 @@ export function useMediaBlobRecorder(
 }
 
 export function useMediaInputDevices(isPermissionGranted: boolean) {
+  const devices = useMediaDevices(isPermissionGranted);
+
+  return [devices.audioInput, devices.videoInput] as const;
+}
+
+export function useMediaDevices(isPermissionGranted: boolean) {
   const [devices, setDevices] = useState<{
-    audio: MediaDeviceInfo[];
-    video: MediaDeviceInfo[];
+    audioInput: MediaDeviceInfo[];
+    videoInput: MediaDeviceInfo[];
+    audioOutput: MediaDeviceInfo[];
   }>({
-    audio: [],
-    video: [],
+    audioInput: [],
+    videoInput: [],
+    audioOutput: [],
   });
 
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  const enumerate = async () => {
-    try {
-      // Get a list of all media devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-
-      return {
-        audio: devices.filter((d) => d.kind === "audioinput"),
-        video: devices.filter((d) => d.kind === "videoinput"),
-      };
-    } catch (error) {
-      console.error("Error getting device", error);
-    }
-
-    return {
-      audio: [],
-      video: [],
-    };
-  };
-
   // Re-initialize the devices when permission is requested
-  useEffect(() => {
-    let isCancelled = false;
-    enumerate().then((devices) => {
-      if (!isCancelled) {
-        setDevices(devices);
-      }
-    });
+  useAsyncEffect(
+    async () => {
+      let deviceEnumerationData: {
+        audioInput: MediaDeviceInfo[];
+        videoInput: MediaDeviceInfo[];
+        audioOutput: MediaDeviceInfo[];
+      } = {
+        audioInput: [],
+        videoInput: [],
+        audioOutput: [],
+      };
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [isPermissionGranted, lastUpdate]);
+      try {
+        // Get a list of all media devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+
+        deviceEnumerationData = {
+          audioInput: devices.filter((d) => d.kind === "audioinput"),
+          videoInput: devices.filter((d) => d.kind === "videoinput"),
+          audioOutput: devices.filter((d) => d.kind === "audiooutput"),
+        };
+      } catch (error) {
+        console.error("Error getting device", error);
+      }
+
+      return deviceEnumerationData;
+    },
+    (devices) => {
+      setDevices(devices);
+    },
+    [isPermissionGranted, lastUpdate]
+  );
 
   useEffect(() => {
     const changeHandler = () => {
@@ -283,7 +293,7 @@ export function useMediaInputDevices(isPermissionGranted: boolean) {
     };
   }, []);
 
-  return [devices.audio, devices.video] as const;
+  return { ...devices } as const;
 }
 
 const stopStream = (stream: MediaStream | null) => {
@@ -427,38 +437,39 @@ export function useMediaPermissionsQuery() {
     null
   );
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    navigator.permissions
-      .query({
+  useAsyncEffect(
+    async (): Promise<{
+      microphone: PermissionState | "unsupported";
+      camera: PermissionState | "unsupported";
+    }> => {
+      const micPermPromise = navigator.permissions.query({
         name: "microphone" as PermissionName,
-      })
-      .then((micPerm) => {
-        if (isCancelled) return;
-        setMicrophone(micPerm.state);
-      })
-      .catch(() => {
-        if (isCancelled) return;
-        setMicrophone("unsupported");
-      });
-    navigator.permissions
-      .query({
-        name: "camera" as PermissionName,
-      })
-      .then((cameraPerm) => {
-        if (isCancelled) return;
-        setCamera(cameraPerm.state);
-      })
-      .catch(() => {
-        if (isCancelled) return;
-        setCamera("unsupported");
       });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+      const cameraPermPromise = navigator.permissions.query({
+        name: "camera" as PermissionName,
+      });
+
+      const [micPerm, cameraPerm] = await Promise.allSettled([
+        micPermPromise,
+        cameraPermPromise,
+      ]);
+
+      return {
+        microphone:
+          micPerm.status === "fulfilled" ? micPerm.value.state : "unsupported",
+        camera:
+          cameraPerm.status === "fulfilled"
+            ? cameraPerm.value.state
+            : "unsupported",
+      };
+    },
+    ({ microphone, camera }) => {
+      setMicrophone(microphone);
+      setCamera(camera);
+    },
+    []
+  );
 
   return { microphone, camera };
 }

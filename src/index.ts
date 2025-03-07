@@ -6,6 +6,8 @@ export {
   useAudioLevel,
 } from "./hooks/audio";
 
+export { AudioContextProvider } from "./contextProviders/audioContextProvider";
+
 export type {
   RecordedMediaResult,
   ElapsedTime,

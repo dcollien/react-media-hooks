@@ -23,6 +23,10 @@ export default defineConfig({
         "use-media": resolve(__dirname, "src/hooks/media.ts"),
         "use-blob": resolve(__dirname, "src/hooks/blob.ts"),
         "use-interval": resolve(__dirname, "src/hooks/interval.ts"),
+        "audio-context": resolve(
+          __dirname,
+          "src/contextProviders/audioContextProvider.tsx"
+        ),
       },
       name: "ReactUseMedia",
       formats: ["es", "cjs"],

@@ -1,55 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInterval } from "./interval";
-
-let globalAudioContext: AudioContext = new AudioContext();
-
-export function initAudioContext(onInit?: (context: AudioContext) => void) {
-  if (globalAudioContext.state === "closed") {
-    globalAudioContext = new AudioContext();
-  }
-
-  // AudioContext requires user interaction to start
-  // otherwise it will be suspended / give a warning
-  function onUserInteraction() {
-    if (globalAudioContext.state === "suspended") {
-      globalAudioContext.resume();
-    }
-
-    if (onInit) {
-      onInit(globalAudioContext);
-    }
-
-    // Remove event listeners after first interaction
-    document.removeEventListener("click", onUserInteraction);
-    document.removeEventListener("keydown", onUserInteraction);
-    document.removeEventListener("mousedown", onUserInteraction);
-    document.removeEventListener("touchstart", onUserInteraction);
-    document.removeEventListener("pointerdown", onUserInteraction);
-  }
-
-  if (globalAudioContext.state === "suspended") {
-    document.addEventListener("click", onUserInteraction);
-    document.addEventListener("keydown", onUserInteraction);
-    document.addEventListener("mousedown", onUserInteraction);
-    document.addEventListener("touchstart", onUserInteraction);
-    document.addEventListener("pointerdown", onUserInteraction);
-  } else if (onInit) {
-    onInit(globalAudioContext);
-  }
-}
-
-// Returns the global audio context and triggers render when it's ready
-export function useAudioContext() {
-  const [context, setContext] = useState<AudioContext | null>(null);
-
-  useEffect(() => {
-    initAudioContext((context) => {
-      setContext(context);
-    });
-  }, []);
-
-  return context;
-}
+import useAsyncEffect from "./async";
+import { useAudioContext } from "./audioContext";
+export { useAudioContext, initAudioContext } from "./audioContext";
 
 // Returns the audio source node from the audio context and stream
 export function useAudioStreamSource(stream: MediaStream | null) {
@@ -188,29 +141,22 @@ export function useAudioDataSource(
 
   const [source, setSource] = useState<AudioBufferSourceNode | null>(null);
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (!data || audioContext === null) return;
-
-    createSource(
-      audioContext,
-      data,
-      detune,
-      loop,
-      loopStart,
-      loopEnd,
-      playbackRate
-    ).then((newSource) => {
-      if (!isCancelled) {
-        setSource(newSource);
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [data, audioContext, detune, loop, loopStart, loopEnd, playbackRate]);
+  useAsyncEffect(
+    () =>
+      createSource(
+        audioContext,
+        data,
+        detune,
+        loop,
+        loopStart,
+        loopEnd,
+        playbackRate
+      ),
+    (newSource) => {
+      setSource(newSource);
+    },
+    [data, audioContext, detune, loop, loopStart, loopEnd, playbackRate]
+  );
 
   return source;
 }

@@ -34,6 +34,11 @@
       "import": "./dist/use-interval.js",
       "require": "./dist/use-interval.cjs"
     },
+    "./audio-context": {
+      "types": "./dist/audio-context.d.ts",
+      "import": "./dist/audio-context.js",
+      "require": "./dist/audio-context.cjs"
+    },
     ".": {
       "types": "./dist/use-all.d.ts",
       "import": "./dist/use-all.js",
