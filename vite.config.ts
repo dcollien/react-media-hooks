@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, LibraryFormats } from "vite";
 import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
 
@@ -7,12 +7,22 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// https://vite.dev/config/
-export default defineConfig({
+const demoConfig = {
+  base: "./",
+  root: resolve(dirname(fileURLToPath(import.meta.url)), "./"),
+  plugins: [react()],
+  build: {
+    outDir: resolve(dirname(fileURLToPath(import.meta.url)), "docs"),
+    emptyOutDir: true,
+  },
+};
+
+const libConfig = {
   plugins: [
     react(),
     dts({
       insertTypesEntry: true,
+      exclude: ["src/main.tsx", "src/App.tsx", "src/Basic.tsx"],
     }),
   ],
   build: {
@@ -29,7 +39,7 @@ export default defineConfig({
         ),
       },
       name: "ReactUseMedia",
-      formats: ["es", "cjs"],
+      formats: ["es", "cjs"] as LibraryFormats[],
     },
     rollupOptions: {
       external: ["react"],
@@ -42,4 +52,13 @@ export default defineConfig({
       },
     },
   },
+};
+
+// https://vite.dev/config/
+export default defineConfig(({ mode }) => {
+  if (mode === "demo") {
+    return demoConfig;
+  } else {
+    return libConfig;
+  }
 });

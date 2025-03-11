@@ -51,12 +51,12 @@ function AudioRecorderStep({
 
   const constraints = audioDeviceId
     ? { audio: { deviceId: { exact: audioDeviceId } } }
-    : null;
+    : { audio: true };
 
   const stream = useMediaStream(constraints);
-  const result = useMediaBlobRecorder(stream, isRecording);
-  const timeElapsed = useElapsedTime(result, isRecording);
-  const blobUrls = useBlobUrls(result.blobs);
+  const recording = useMediaBlobRecorder(stream, isRecording);
+  const timeElapsed = useElapsedTime(recording, isRecording);
+  const blobUrls = useBlobUrls(recording.blobs);
 
   return (
     <div>
@@ -95,12 +95,15 @@ function VideoRecorderStep({
           audio: { deviceId: { exact: audioDeviceId } },
           video: { deviceId: { exact: videoDeviceId } },
         }
-      : null;
+      : {
+          audio: true,
+          video: true,
+        };
 
   const stream = useMediaStream(constraints);
-  const result = useMediaBlobRecorder(stream, isRecording);
-  const timeElapsed = useElapsedTime(result, isRecording);
-  const blobUrls = useBlobUrls(result.blobs);
+  const recording = useMediaBlobRecorder(stream, isRecording);
+  const timeElapsed = useElapsedTime(recording, isRecording);
+  const blobUrls = useBlobUrls(recording.blobs);
 
   return (
     <div>
@@ -125,43 +128,66 @@ function VideoRecorderStep({
 }
 
 function App() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [audioDeviceId, setAudioDeviceId] = useState<string | null>(null);
   const [videoDeviceId, setVideoDeviceId] = useState<string | null>(null);
 
-  if (step === 0) {
+  if (step === 1) {
     return (
       <div>
         <h1>Step 1: Select your device</h1>
         <p>
-          Notice that the recording icon only activates momentarily, enough time
-          to fetch a valid list of devices.
+          Notice that the recording icon only activates momentarily if
+          permissions are not yet given. It then disappears. The stream is no
+          longer open.
         </p>
+        <p>Connecting a new device will automatically update this list.</p>
+        <pre>
+          const {"{"}(audioDevices, videoDevices){"}"} =
+          useMediaInputDevicesRequest();
+        </pre>
         <DeviceSelectionStep
           audioDeviceId={audioDeviceId}
           videoDeviceId={videoDeviceId}
           onAudioDeviceIdChange={(id) => setAudioDeviceId(id)}
           onVideoDeviceIdChange={(id) => setVideoDeviceId(id)}
         />
-        <button onClick={() => setStep(1)}>Next</button>
-      </div>
-    );
-  } else if (step == 1) {
-    return (
-      <div>
-        <h1>Step 2: Take a breath</h1>
-        <p>
-          Notice that the recording icon may eventually disappear. The stream is
-          no longer open.
-        </p>
         <button onClick={() => setStep(2)}>Next</button>
-        <button onClick={() => setStep(0)}>Back</button>
       </div>
     );
   } else if (step === 2) {
     return (
       <div>
         <h1>Step 3: Record your audio</h1>
+        <p>Stream is open and awaiting recording.</p>
+        <p>This uses the following hooks:</p>
+        <ul>
+          <li>
+            <pre>const stream = useMediaStream(constraints);</pre>
+          </li>
+          <li>
+            <pre>
+              const recording = useMediaBlobRecorder(stream, isRecording);
+            </pre>
+          </li>
+          <li>
+            <pre>
+              const {"{"}(elapsed, minutes, seconds, millis){"}"} =
+              useElapsedTime(recording, isRecording);
+            </pre>
+          </li>
+          <li>
+            <pre>const urls = useBlobUrls(recording.blobs);</pre>
+          </li>
+          <li>
+            <pre>const source = useAudioStreamSource(stream);</pre>
+          </li>
+          <li>
+            <pre>
+              const {"{"}(level, timestamp){"}"} = useAudioLevel(source);
+            </pre>
+          </li>
+        </ul>
         <AudioRecorderStep audioDeviceId={audioDeviceId} />
         <button onClick={() => setStep(3)}>Next</button>
         <button onClick={() => setStep(1)}>Back</button>
@@ -170,7 +196,11 @@ function App() {
   } else if (step === 3) {
     return (
       <div>
-        <h1>Step 4: Take a breath</h1>
+        <h1>Step 4: Stream Closed</h1>
+        <p>
+          The stream is once again closed. The recording status should
+          disappear.
+        </p>
         <button onClick={() => setStep(4)}>Next</button>
         <button onClick={() => setStep(2)}>Back</button>
       </div>

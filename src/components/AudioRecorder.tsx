@@ -14,7 +14,7 @@ export function AudioRecorder({
   onRecord: () => void;
   onStop: () => void;
 }) {
-  const minutes = timeElapsed.minutes.toFixed(0).padStart(2, "0");
+  const minutes = timeElapsed.minutes.toFixed(0);
   const seconds = timeElapsed.seconds.toFixed(0).padStart(2, "0");
   const milliseconds = timeElapsed.millis.toFixed(0).padStart(3, "0");
   return (
@@ -47,12 +47,13 @@ export function AudioRecorder({
         )}
       </div>
       {!stream ? (
-        <p>No audio input device found</p>
+        <p>No device found</p>
       ) : (
         <AudioScroller audioStream={stream} disabled={!isRecording} />
       )}
       <pre style={{ margin: "0 10px" }}>
-        {minutes}:{seconds}:{milliseconds}
+        {minutes}:{seconds}
+        <span style={{ color: "#666" }}>.{milliseconds}</span>
       </pre>
     </div>
   );

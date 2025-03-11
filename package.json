@@ -70,6 +70,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "build-demo": "vite build --mode demo",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
