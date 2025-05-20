@@ -1,7 +1,7 @@
 {
   "name": "react-media-hooks",
   "private": false,
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "A React hook library for media and audio utilities",
   "type": "module",
   "license": "MIT",

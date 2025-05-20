@@ -80,10 +80,12 @@ export interface UseMediaRecorderOptions extends MediaRecorderOptions {
 export function useMediaRecorder(
   stream: MediaStream | null,
   isRecording: boolean,
-  onDataAvailable?: (event: BlobEvent) => void,
-  onStart?: (event: MediaRecorderEvent) => void,
-  onResume?: (event: MediaRecorderEvent) => void,
-  onStop?: (event: MediaRecorderEvent) => void,
+  callbacks?: {
+    // MediaRecorder events
+    onStart?: (event: MediaRecorderEvent, isResuming: boolean) => void,
+    onStop?: (event: MediaRecorderEvent) => void,
+    onDataAvailable?: (event: BlobEvent) => void,
+  },
   options?: UseMediaRecorderOptions
 ) {
   // Reference to the MediaRecorder
@@ -102,8 +104,8 @@ export function useMediaRecorder(
       mediaRecorderRef.current = recorder;
 
       recorder.addEventListener("dataavailable", (event) => {
-        if (onDataAvailable) {
-          onDataAvailable(event);
+        if (callbacks?.onDataAvailable) {
+          callbacks.onDataAvailable(event);
         }
       });
 
@@ -112,24 +114,16 @@ export function useMediaRecorder(
 
         const isResuming = previousMediaRecorderRef.current !== null;
 
-        if (isResuming) {
-          // Resume recording after the stream changes
-          if (onResume) {
-            onResume(recorderEvent);
-          }
-        } else {
-          // Start recording when isRecording becomes true
-          if (onStart) {
-            onStart(recorderEvent);
-          }
+        if (callbacks?.onStart) {
+          callbacks.onStart(recorderEvent, isResuming);
         }
       });
 
       recorder.addEventListener("stop", (event) => {
         const recorderEvent = toRecorderEvent(event, recorder);
 
-        if (onStop) {
-          onStop(recorderEvent);
+        if (callbacks?.onStop) {
+          callbacks.onStop(recorderEvent);
         }
       });
 
@@ -178,25 +172,22 @@ export function useMediaBlobRecorder(
     blobs: [],
   });
 
-  const onDataAvailable = (event: BlobEvent) => {
-    // Store the recorded chunks in memory when available
-    chunksRef.current.push(event.data);
-  };
-
-  const onStart = (event: MediaRecorderEvent) => {
+  const onStart = (event: MediaRecorderEvent, isResuming: boolean) => {
     // Reset the chunks when recording starts
     chunksRef.current = [];
 
-    // Set the start time and clear the completed blobs
-    setResult({
-      startTime: event.timeStamp,
-      blobs: [],
-    });
+    if (!isResuming) {
+      // Set the start time and clear the completed blobs
+      setResult({
+        startTime: event.timeStamp,
+        blobs: [],
+      });
+    }
   };
 
-  const onResume = () => {
-    // Reset the chunks
-    chunksRef.current = [];
+  const onDataAvailable = (event: BlobEvent) => {
+    // Store the recorded chunks in memory when available
+    chunksRef.current.push(event.data);
   };
 
   const onStop = (event: MediaRecorderEvent) => {
@@ -218,10 +209,11 @@ export function useMediaBlobRecorder(
   useMediaRecorder(
     stream,
     isRecording,
-    onDataAvailable,
-    onStart,
-    onResume,
-    onStop,
+    {
+      onStart,
+      onStop,
+      onDataAvailable
+    },
     options
   );
 

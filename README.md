@@ -474,15 +474,18 @@ Can be used as a shortcut to retrieve the elapsed time since a result was create
 useMediaRecorder(
     stream: MediaStream | null,
     isRecording: boolean,
-    onDataAvailable?: (event: BlobEvent) => void,
-    onStart?: (event: MediaRecorderEvent) => void,
-    onResume?: (event: MediaRecorderEvent) => void,
-    onStop?: (event: MediaRecorderEvent) => void,
+    callbacks?: {
+      onDataAvailable?: (event: BlobEvent) => void,
+      onStart?: (event: MediaRecorderEvent, isResuming: boolean) => void,
+      onStop?: (event: MediaRecorderEvent) => void,
+    },
     options?: UseMediaRecorderOptions
 ): void
 ```
 
-Start recording on a stream. Toggle `isRecording` to start/stop recording. If a stream is changed mid-recording, `onStop` will be called followed by `onResume` when a new stream starts.
+Start recording on a stream. Toggle `isRecording` to start/stop recording. 
+
+Stream changes: if the stream changes mid-recording, `onStop` will be called, then `onStart` will be called with `isResuming = true` when the new stream starts.
 
 `onDataAvailable` sends `event.data` that can be combined into an audio file `onStop` using:
 
